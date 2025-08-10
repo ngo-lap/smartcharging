@@ -6,9 +6,9 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import cvxpy as cp
-
 from core.planner.optimization import evcsp_milp, evcsp_lp
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
+from core.utility.kpi.eval_performance import compute_energetic_kpi
 from core.utility.logger.custom_loggers import setup_logger
 
 plt.rcParams["figure.figsize"] = (20, 12)
@@ -57,7 +57,7 @@ def create_charging_plans(
 
     # if formulation == "milp":
 
-    profile, totalPower, evcsp = evcsp_milp(
+    activationProfiles, powerProfiles, evcsp = evcsp_milp(
         nbr_vehicle, arrival, departure, power, energyRequired, energyMax, capacity_grid,
         horizon_length, time_step, solver_options
     )
@@ -71,7 +71,7 @@ def create_charging_plans(
     #         solver_options=solver_options
     #     )
 
-    return profile, totalPower, evcsp
+    return activationProfiles, powerProfiles, evcsp
 
 
 if __name__ == '__main__':
@@ -91,12 +91,22 @@ if __name__ == '__main__':
     data_planning = prepare_planning_data(data_demand=data_mobility, time_step=time_step)
 
     # Planning
-    profile, totalProfile, prob = create_charging_plans(
+    activationProfiles, powerProfiles, prob = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity, n_sols=n_sols,
-        formulation="lp", solver_options=solver_options_1
+        formulation="milp", solver_options=solver_options_2
     )
+
+    # KPI
+    kpi_station, kpi_per_ev = compute_energetic_kpi(
+        power_profiles=powerProfiles,
+        power_grid=capacity,
+        planning_input=data_planning,
+        time_step=time_step
+    )
+
     print(prob.solver_stats)
+    print(kpi_station)
 
     # _, _, prob2 = planner(
     #     data_planning, horizon_length=horizon_length, time_step=time_step,
@@ -107,7 +117,7 @@ if __name__ == '__main__':
 
     # Visualization
     fig, axs = plt.subplots(1, 2)  # 2x2 grid of subplots
-    plt.plot(range(horizon_length), totalProfile)
+    plt.plot(range(horizon_length), powerProfiles.sum(axis=1))
     plt.hlines(capacity, 0, horizon_length, linestyles='--')
     plt.xlabel("Time Idx")
     plt.ylabel("Total Charging Power (kW)")
