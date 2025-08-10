@@ -1,0 +1,71 @@
+from typing import List
+import numpy as np
+import pandas as pd
+import copy
+
+
+def generate_mobility_data(
+        nbr_vehicles: int, horizon_length: int = 24, time_step: int = 900
+) -> pd.DataFrame:
+    """
+        Artificially generate mobility demand data
+
+    :param nbr_vehicles: Number of vehicles
+    :param horizon_length: [hour] the horizon length
+    :param time_step: [second] time step of the planning problem
+    :return:
+    """
+
+    # Data
+    # --------------------------------
+    powerNomSet: List[int] = [6, 7, 11, 22]  # kW
+    capacitykWh: List[int] = [30, 52, 88, 100]  # kWh
+    deltaT: int = int(3600 / time_step)  # 3600 / timestep
+    powerNom: np.array = np.random.choice(powerNomSet, nbr_vehicles)  # Nominal Charging Power [kW]
+    energyMax: np.array = np.random.choice(capacitykWh, nbr_vehicles)
+    energyRequired: np.array = np.random.randint(5, 80, nbr_vehicles)  # Total charging energy [kWh]
+
+    # Time Data [Seconds from 00:00]
+    arrivalTime: np.array = np.random.randint(6 * 3600, 12 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
+    parkingDuration: np.array = np.random.randint(1 * 3600, 5 * 3600, nbr_vehicles)  # Parking duration [Seconds]
+    departureTime: np.array = arrivalTime + parkingDuration
+
+    durations: np.array = 3600 * energyRequired / powerNom  # Charging Duration [seconds]
+    durations = np.minimum(parkingDuration, durations)  # Limit charging duration to parking time
+
+    data_generated: pd.DataFrame = pd.DataFrame(
+        {
+            'powerNom': powerNom, 'energyRequired': (durations / 3600) * powerNom,
+            'energyMax': energyMax,
+            'arrivalTime': arrivalTime / 3600, 'departureTime': departureTime / 3600,
+            'parkingDuration': parkingDuration / 3600,
+            'chargingDuration': durations / 3600
+        }, index=range(nbr_vehicles)
+    )
+
+    return data_generated
+
+
+def prepare_planning_data(data_mobility: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
+    """
+        Return indices of the mobility data. The index 0 begins at 0:00 AM
+
+    :param data_mobility:
+    :param time_step:
+    :return:
+    """
+    fields2convert = ["arrivalTime", "departureTime", "parkingDuration", "chargingDuration"]
+    data_mobility_idx = copy.deepcopy(data_mobility)
+    data_mobility_idx.loc[:, fields2convert] = np.floor(
+        data_mobility.loc[:, fields2convert] * 3600 / time_step
+    )
+    data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
+
+    return data_mobility_idx
+
+
+if __name__ == '__main__':
+    data_mobility = generate_mobility_data(nbr_vehicles=5, horizon_length=24, time_step=900)
+    data_planning = prepare_planning_data(data_mobility, time_step=900)
+    print(data_mobility)
+    print(data_planning)
