@@ -4,7 +4,7 @@ import pandas as pd
 import copy
 
 
-def generate_mobility_data(
+def generate_demand_data(
         nbr_vehicles: int, horizon_length: int = 24, time_step: int = 900
 ) -> pd.DataFrame:
     """
@@ -46,18 +46,18 @@ def generate_mobility_data(
     return data_generated
 
 
-def prepare_planning_data(data_mobility: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
+def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
     """
         Return indices of the mobility data. The index 0 begins at 0:00 AM
 
-    :param data_mobility:
+    :param data_demand:
     :param time_step:
     :return:
     """
     fields2convert = ["arrivalTime", "departureTime", "parkingDuration", "chargingDuration"]
-    data_mobility_idx = copy.deepcopy(data_mobility)
+    data_mobility_idx = copy.deepcopy(data_demand)
     data_mobility_idx.loc[:, fields2convert] = np.floor(
-        data_mobility.loc[:, fields2convert] * 3600 / time_step
+        data_demand.loc[:, fields2convert] * 3600 / time_step
     )
     data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
 
@@ -65,7 +65,7 @@ def prepare_planning_data(data_mobility: pd.DataFrame, time_step: int = 900) -> 
 
 
 if __name__ == '__main__':
-    data_mobility = generate_mobility_data(nbr_vehicles=5, horizon_length=24, time_step=900)
+    data_mobility = generate_demand_data(nbr_vehicles=5, horizon_length=24, time_step=900)
     data_planning = prepare_planning_data(data_mobility, time_step=900)
     print(data_mobility)
     print(data_planning)
