@@ -1,12 +1,11 @@
 # day_ahead_planner.py
 # Translate real charging demand data to optimization input file
-
-
+from typing import List
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import cvxpy as cp
-from core.planner.optimization import evcsp_milp, evcsp_lp
+from core.planner.optimization import evcsp_milp
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 from core.utility.logger.custom_loggers import setup_logger
@@ -17,9 +16,10 @@ logger = setup_logger(__name__)
 
 def create_charging_plans(
         data_demand: pd.DataFrame, horizon_length: int, time_step: int,
-        nbr_vehicle: int, capacity_grid: float, n_sols: int,
+        nbr_vehicle: int, capacity_grid: float | List[float] | np.array, n_sols: int,
         formulation: str = "milp", solver_options: dict = None
 ) -> (np.array, np.array, cp.Problem):
+
     """
         Return the charging plans of all vehicles
 
@@ -57,9 +57,11 @@ def create_charging_plans(
 
     # if formulation == "milp":
 
-    activationProfiles, powerProfiles, evcsp = evcsp_milp(nbr_vehicle, arrival, departure, power, energyRequired,
-                                                          energyMax, capacity_grid, horizon_length, time_step,
-                                                          solver_options)
+    activationProfiles, powerProfiles, evcsp = evcsp_milp(
+        nbr_vehicle, arrival, departure, power, energyRequired,
+        energyMax, capacity_grid, horizon_length, time_step,
+        solver_options
+    )
 
     # elif formulation == "lp":
     #
