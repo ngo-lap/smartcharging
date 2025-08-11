@@ -35,6 +35,7 @@ def compute_energetic_kpi(
     kpi_station["energykWh"] = energy_kWh.sum()
     kpi_station["energyPlannedkWh"] = planning_input["energyRequired"].sum()
     kpi_station["workloadPct"] = 100 * kpi_station["energykWh"] / kpi_station["energyPlannedkWh"]
+    kpi_station["peakPowerkW"] = power_profiles.sum(axis=1).max()
 
     return kpi_station, df_per_vehicle
 
