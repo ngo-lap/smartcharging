@@ -75,10 +75,10 @@ def create_charging_plans(
 
 if __name__ == '__main__':
 
-    nVE = 40
-    time_step = 900  # [Seconds]
-    horizon_length = 96  # [Time Step]
-    capacity = 100  # [kW] grid capacity
+    nVE = 100
+    time_step = 900         # [Seconds]
+    horizon_length = 96     # [Time Step]
+    capacity = 200          # [kW] grid capacity
     n_sols = 250
     solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
     solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}

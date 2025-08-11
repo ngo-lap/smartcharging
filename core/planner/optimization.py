@@ -34,7 +34,7 @@ def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int
 
     deltaT = time_step / 3600
     effCharging = 0.9
-    priceElec = 0.13  # €/kWh
+    priceElectricity = 0.13  # €/kWh
     penaltyUnsatisfied = 100  # [€ / kWh] Penalty for unsatisfied energy
 
     # VARIABLE
@@ -97,7 +97,7 @@ def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int
     # -------------------------------
     func_obj = cp.Minimize(
         penaltyUnsatisfied * cp.sum(soeUnder / capacity_nom)
-        + priceElec * deltaT * cp.sum(powerCharging)
+        + priceElectricity * deltaT * cp.sum(powerCharging)
     )
 
     # Solve the problem
