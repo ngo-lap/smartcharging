@@ -57,10 +57,9 @@ def create_charging_plans(
 
     # if formulation == "milp":
 
-    activationProfiles, powerProfiles, evcsp = evcsp_milp(
-        nbr_vehicle, arrival, departure, power, energyRequired, energyMax, capacity_grid,
-        horizon_length, time_step, solver_options
-    )
+    activationProfiles, powerProfiles, evcsp = evcsp_milp(nbr_vehicle, arrival, departure, power, energyRequired,
+                                                          energyMax, capacity_grid, horizon_length, time_step,
+                                                          solver_options)
 
     # elif formulation == "lp":
     #

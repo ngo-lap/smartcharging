@@ -32,8 +32,9 @@ def compute_energetic_kpi(
 
     # Overall KPI
     kpi_station = dict()
-    kpi_station["workloadPct"] = 100 * energy_kWh.sum() / planning_input["energyRequired"].sum()
     kpi_station["energykWh"] = energy_kWh.sum()
+    kpi_station["energyPlannedkWh"] = planning_input["energyRequired"].sum()
+    kpi_station["workloadPct"] = 100 * kpi_station["energykWh"] / kpi_station["energyPlannedkWh"]
 
     return kpi_station, df_per_vehicle
 

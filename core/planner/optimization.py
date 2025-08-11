@@ -4,49 +4,48 @@ import cvxpy as cp
 import numpy as np
 from core.utility.logger.custom_loggers import setup_logger
 
-# Create default logger
 logger = setup_logger(__name__)
 
+
 # TODO: TOU
-# TODO: Refactoring code
 
+def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
+               required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],
+               horizon_length: int, time_step: int = 900, solver_options: dict = None) -> \
+        (np.array, np.array, cp.Problem):
 
-def evcsp_milp(
-        nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
-        power_nom: List[int], required_energy: List[int], energy_max: List[int],
-        capacity: float, horizon_length: int, time_step: int = 900,
-        solver_options: dict = None
-) -> (np.array, np.array, cp.Problem):
     """
     MILP version of EVCSP
 
-    :param solver_options:
-    :param time_step:
     :param nbr_vehicle:
     :param arrival_idx:
     :param departure_idx:
-    :param power_nom:
-    :param energy_max:
-    :param required_energy:
-    :param capacity:
-    :param horizon_length:
+    :param power_nom: nominal power of each vehicle [kW]
+    :param capacity_nom: nominal capacity for each vehicle [kWh]
+    :param required_energy: energy demand for each vehicle [kWh]
+    :param p_max_infra: max power profile for the station [kW]
+    :param horizon_length: horizon length [time steps]
+    :param time_step: [seconds]
+    :param solver_options:
     :return:
     """
 
-    # requiredChargingEnergy = np.array(power_nom) * np.array(durations)
-    # chargingEnergyMax = 1.0 * requiredChargingEnergy
+    assert (required_energy <= capacity_nom, "Required Energy must not exceed nom capacity")
+
     deltaT = time_step / 3600
-    # deltaT = 1
-    reductionRatio = 0.5
+    effCharging = 0.9
+    priceElec = 0.13  # €/kWh
+    penaltyUnsatisfied = 100  # [€ / kWh] Penalty for unsatisfied energy
 
     # VARIABLE
     # --------------------------------
-    # schedule[t, v] = 1 means the vehicle v is charged at time t
-    schedule: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), boolean=True)
+    # activation[t, v] = 1 means the vehicle v is charged at time t
+    activation: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), boolean=True)
 
-    # energyCharging[t,v] is the accumulated workload of vehicle v at time t
-    energyCharging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
-    missingEnergy: cp.Variable = cp.Variable(shape=nbr_vehicle)
+    # soe[t,v] is the state of energy vehicle v at time t
+    soe: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
+    soeUnder: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True)  # Undercharged SOE
+    soeOver: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True)  # Overcharged SOE
 
     # powerCharging[t,v] is the workload speed of vehicle v at time t
     powerCharging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
@@ -61,40 +60,45 @@ def evcsp_milp(
 
     # Arrival & Departure
     for v in range(nbr_vehicle):
-        ctrs_arrival.append(schedule[0:arrival_idx[v], v] == 0)
-        ctrs_departure.append(schedule[departure_idx[v]::, v] == 0)
+        ctrs_arrival.append(activation[0:arrival_idx[v], v] == 0)
+        ctrs_departure.append(activation[departure_idx[v]::, v] == 0)
 
-    # Power Bounds
+    # Power Bounds & Activation
     for v in range(nbr_vehicle):
-        ctrs_power_bounds.append(powerCharging[:, v] <= power_nom[v] * schedule[:, v])
+        ctrs_power_bounds.append(powerCharging[:, v] <= power_nom[v] * activation[:, v])
 
-    # Charging Energy [t+1] = schedule[t] * Charging Power [t] + Charging Energy[t]
+    # Charging Energy [t+1] = activation[t] * Charging Power [t] + Charging Energy[t]
     for v in range(nbr_vehicle):
         ctrs_energy.append(
-            energyCharging[1:-1, v]
+            soe[1:-1, v]
             ==
-            powerCharging[0:-2, v] * deltaT + energyCharging[0:-2, v]
+            effCharging * powerCharging[0:-2, v] * deltaT + soe[0:-2, v]
         )
 
+        # ctrs_energy.append(soe[-1, v] >= reductionRatio * required_energy[v])
+        ctrs_energy.append(soe[0, :] == 0)  # TODO: SOE init
+        ctrs_energy.append(soe[:, v] <= capacity_nom[v])
+
+        # Unsatisfied SOE
         ctrs_energy.append(
-            energyCharging[-1, v] >= reductionRatio * required_energy[v]
+            soeUnder[v] - soeOver[v] == required_energy[v] - soe[departure_idx[v], v]
         )
 
-        ctrs_energy.append(
-            energyCharging[:, v] <= energy_max[v]
-        )
-
-        ctrs_energy.append(energyCharging[0, :] == 0)
+    ctrs_energy.append(required_energy >= soeUnder)
+    ctrs_energy.append(soeOver <= required_energy)
 
     # Power Limit
-    ctrs_power.append(cp.sum(powerCharging, axis=1) <= capacity)
+    ctrs_power.append(cp.sum(powerCharging, axis=1) <= p_max_infra)
 
     # Append all constraints
     ctrs_all = ctrs_arrival + ctrs_departure + ctrs_power_bounds + ctrs_energy + ctrs_power
 
     # OBJECTIVE
     # -------------------------------
-    func_obj = cp.Maximize(cp.sum(energyCharging))
+    func_obj = cp.Minimize(
+        penaltyUnsatisfied * cp.sum(soeUnder / capacity_nom)
+        + priceElec * deltaT * cp.sum(powerCharging)
+    )
 
     # Solve the problem
     prob = cp.Problem(objective=func_obj, constraints=ctrs_all)
@@ -108,10 +112,10 @@ def evcsp_milp(
         print(f"Run Time:{time.time() - start_time} seconds")
         print(prob.status)
         print(prob.value)
-        print(f"WORKLOAD COMPLETION: {np.round(sum(energyCharging[-1, :].value) / sum(required_energy) * 100)} %")
+        print(f"WORKLOAD COMPLETION: {np.round(sum(soe[-1, :].value) / sum(required_energy) * 100)} %")
 
-        profile = schedule.value.tolist()
-        consumptionProfile = np.sum(powerCharging.value.tolist(), axis=1)
+        activationProfile = activation.value
+        powerProfile = powerCharging.value
         sSol = [0]
     else:
         print('Problems solving !!!')
@@ -119,7 +123,7 @@ def evcsp_milp(
         # print(f"Energy: {energyCharging.value}")
         # print(f"Power: {powerCharging.value}")
 
-    return profile, consumptionProfile, prob
+    return activationProfile, powerProfile, prob
 
 
 def evcsp_lp(
