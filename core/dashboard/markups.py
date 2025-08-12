@@ -1,17 +1,43 @@
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 from dash import Dash, html, dash_table, dcc
+from dash.dash_table.Format import Format, Scheme
 import pandas as pd
 import plotly.graph_objects as go
 
 
-def generate_table(dataframe: pd.DataFrame, id_tag: str):
-    return dash_table.DataTable(
+def generate_table(data: List[Dict], id_tag: str) -> dash_table.DataTable:
+    """
+    Format and Generate DataTable
+    :param data: raw data, should come from the .to_dict("records") method of a pd.DataFrame
+    :param id_tag: id for the table
+    :return:
+    """
+    # Formating Data Table
+    df = pd.DataFrame.from_records(data)
+    columns = []
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            columns.append({
+                "name": col,
+                "id": col,
+                "type": "numeric",
+                "format": Format(precision=1, scheme=Scheme.fixed).group(True)  # 1,234.567 style
+            })
+        else:
+            columns.append({"name": col, "id": col, "type": "text"})
+
+    # Creating formated DataTable
+    formated_table = dash_table.DataTable(
         id=id_tag,
-        data=dataframe.to_dict('records'),
-        page_size=8, style_table={'overflowX': 'auto'}
+        data=data,
+        page_size=8, style_table={'overflowX': 'auto'},
+        style_as_list_view=True,
+        columns=columns,
+        style_cell={'textAlign': 'right'}
     )
+    return formated_table
 
 
 def generate_fig_station_power(x, power_profile, capacity_grid) -> go.Figure:
@@ -88,7 +114,7 @@ def generate_fig_heatmap_power(power_profiles_vehicles: np.array) -> go.Figure:
         )
     )
     fig.update_layout(
-        title={"text": "Vehicle Charging Powers"},
+        # title={"text": "Vehicle Charging Powers"},
         yaxis={"title": {"text": "Vehicle"}},
         xaxis={"title": {"text": "Time Step"}},
     )
