@@ -10,6 +10,7 @@ from core.dashboard.markups import generate_table, generate_fig_station_power, g
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
+import plotly.graph_objects as go
 
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
@@ -104,6 +105,17 @@ def run_planner(demand: List[Dict], pmax: List | np.array):
 def download_charging_plans(_, data: Dict) -> List[Dict]:
     df = pd.DataFrame.from_records(data)
     return [dcc.send_data_frame(df.to_excel, filename="charging_plans.xlsx")]
+
+
+@app.callback(
+    [Output(component_id="component-download-charging-plans", component_property="data")],
+    [Input(component_id="button-download-charging-plans", component_property="n_clicks")],
+    State(component_id="fig-vehicles-powers", component_property="figure"),
+    prevent_initial_call=True
+)
+def download_charging_plans(_, figure: go.Figure) -> List[Dict]:
+    df = pd.DataFrame(figure['data'][0]['z'], index=list(range(horizon_length)))
+    return [dcc.send_data_frame(df.to_csv, filename="charging_plans.csv")]
 
 
 # %% DASHBOARD APP
