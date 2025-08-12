@@ -9,7 +9,6 @@ import dash_bootstrap_components as dbc
 from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
-import plotly.graph_objects as go
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 
 # App initialization
@@ -38,13 +37,15 @@ data_planning_displayed = data_planning[["powerNom", "energyRequired", "energyMa
 @app.callback(
     Output(component_id="fig-station-power", component_property="figure"),
     Output(component_id="fig-station-kpi", component_property="figure"),
-    # Input(component_id="charging-demand-table", component_property="data")
+    Input(component_id="charging-demand-table", component_property="data"),
     Input(component_id="pgrid-slider", component_property="value")
 )
-def run_planner(pmax):
+def run_planner(demand, pmax):
+
+    demand_df = pd.DataFrame.from_records(demand)
 
     _, powerProfiles, evcsp = create_charging_plans(
-        data_planning, horizon_length=horizon_length, time_step=time_step,
+        demand_df, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=pmax, n_sols=n_sols,
         formulation="milp", solver_options=solver_options_2
     )
@@ -52,7 +53,7 @@ def run_planner(pmax):
     kpi_station, kpi_per_ev = compute_energetic_kpi(
         power_profiles=powerProfiles,
         power_grid=pmax,
-        planning_input=data_planning,
+        planning_input=demand_df,
         time_step=time_step
     )
 

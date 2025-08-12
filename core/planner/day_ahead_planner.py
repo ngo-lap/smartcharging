@@ -45,12 +45,12 @@ def create_charging_plans(
     arrival = data_demand.loc[:, "arrivalTime"].tolist()
     departure = data_demand.loc[:, "departureTime"].tolist()
     power = data_demand.loc[:, "powerNom"].tolist()
-    duration = data_demand.loc[:, "chargingDuration"].tolist()
+    # duration = data_demand.loc[:, "chargingDuration"].tolist()
     energyRequired = data_demand.loc[:, "energyRequired"].tolist()
     energyMax = data_demand.loc[:, "energyMax"].tolist()
 
-    assert all((np.array(departure) - np.array(arrival) - duration) >= 0), \
-        "Charging duration must be shorter than parking time"
+    # assert all((np.array(departure) - np.array(arrival) - duration) >= 0), \
+    #     "Charging duration must be shorter than parking time"
 
     # Calling the EVCSP planner: either CP (constraint programming), MILP or Heuristics.
     # profile, totalPowerProfile = EVCSP(data_mobility, horizon_length, 'CP')
