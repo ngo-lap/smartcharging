@@ -1,7 +1,7 @@
 # Import packages
 from typing import List, Dict
 import numpy as np
-from dash import Dash, html, dash_table, dcc, callback, Input, Output
+from dash import Dash, html, dash_table, dcc, callback, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
@@ -26,6 +26,8 @@ capacity_grid[40:57] = 80
 solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
 solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
+# %% Demand Predictor
+
 
 @app.callback(
     [Output(component_id="table-charging-demand", component_property="data")],
@@ -49,7 +51,6 @@ charging_demand_displayed = charging_demand[["powerNom", "energyRequired", "ener
 
 
 # %% DAY-AHEAD PLANNING
-
 
 @app.callback(
     [
@@ -91,8 +92,22 @@ def run_planner(demand: List[Dict], pmax: List | np.array):
 
     return fig_power, fig_kpi, fig_vehicle_power
 
+# %% Download Callbacks
+
+
+@app.callback(
+    [Output(component_id="component-download-charging-demand", component_property="data")],
+    [Input(component_id="button-download-charging-demand", component_property="n_clicks")],
+    State(component_id="table-charging-demand", component_property="derived_virtual_data"),
+    prevent_initial_call=True
+)
+def download_charging_plans(_, data: Dict) -> List[Dict]:
+    df = pd.DataFrame.from_records(data)
+    return [dcc.send_data_frame(df.to_excel, filename="charging_plans.xlsx")]
+
 
 # %% DASHBOARD APP
+
 
 app.layout = dbc.Container(
     [
@@ -102,6 +117,8 @@ app.layout = dbc.Container(
                 dbc.Col(
                     [
                         html.Button(children="Predict Charging Demand", n_clicks=0, id="button-charging-demand"),
+                        html.Button(children="Download Demand", n_clicks=0, id="button-download-charging-demand"),
+                        dcc.Download(id="component-download-charging-demand"),
                         generate_table(data=charging_demand_displayed.to_dict("records"), id_tag="table-charging-demand")
                     ]
                 ),
@@ -116,16 +133,20 @@ app.layout = dbc.Container(
         dbc.Row(
             [
                 html.H4(children="Max Power (kW)"),
-                dcc.Slider(id="slider-pgrid", min=50, max=400, value=100, step=20)
+                dcc.Slider(id="slider-pgrid", min=50, max=400, value=100, step=20),
             ]
         ),
         dbc.Row(
-            dcc.Tabs(
-                [
-                    dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
-                    dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
-                ]
-            )
+            [
+                dcc.Tabs(
+                    [
+                        dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
+                        dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
+                    ]
+                ),
+                html.Button("Download Charging Plans", style={"marginTop": 5}, id="button-download-charging-plans"),
+                dcc.Download(id="component-download-charging-plans")
+            ]
         )
     ],
     fluid=True
