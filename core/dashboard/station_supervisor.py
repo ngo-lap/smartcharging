@@ -6,7 +6,8 @@ import cvxpy as cp
 import plotly.express as px
 import dash_bootstrap_components as dbc
 
-from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi
+from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
+    generate_fig_heatmap_power
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
@@ -14,11 +15,10 @@ from core.utility.kpi.eval_performance import compute_energetic_kpi
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
 
-
 # %% DATA PREPARATION
 # Meta-parameters
 nVE = 40
-time_step = 600  # [Seconds]
+time_step = 900  # [Seconds]
 horizon_length = int(24 * 3600 / time_step)  # [Time Step]
 capacity = 200  # [kW] grid capacity
 n_sols = 250
@@ -31,17 +31,22 @@ data_planning_raw = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizo
 data_planning = prepare_planning_data(data_demand=data_planning_raw, time_step=time_step)
 data_planning_displayed = data_planning[["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]]
 
+
 # %% DAY-AHEAD PLANNING
 
 
 @app.callback(
-    Output(component_id="fig-station-power", component_property="figure"),
-    Output(component_id="fig-station-kpi", component_property="figure"),
-    Input(component_id="charging-demand-table", component_property="data"),
-    Input(component_id="pgrid-slider", component_property="value")
+    [
+        Output(component_id="fig-station-power", component_property="figure"),
+        Output(component_id="fig-station-kpi", component_property="figure"),
+        Output(component_id="fig-vehicles-powers", component_property="figure")
+    ],
+    [
+        Input(component_id="charging-demand-table", component_property="data"),
+        Input(component_id="pgrid-slider", component_property="value")
+    ]
 )
 def run_planner(demand, pmax):
-
     demand_df = pd.DataFrame.from_records(demand)
 
     _, powerProfiles, evcsp = create_charging_plans(
@@ -64,8 +69,9 @@ def run_planner(demand, pmax):
     )
 
     fig_kpi = generate_fig_station_kpi(kpi_station=kpi_station)
+    fig_vehicle_power = generate_fig_heatmap_power(power_profiles_vehicles=powerProfiles)
 
-    return fig_power, fig_kpi
+    return fig_power, fig_kpi, fig_vehicle_power
 
 
 # %% Visualization
@@ -134,14 +140,13 @@ app.layout = dbc.Container(
             dcc.Tabs(
                 [
                     dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
-                    dcc.Tab(dcc.Graph(figure={}), label="Vehicle Powers")
+                    dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
                 ]
             )
         )
     ],
     fluid=True
 )
-
 
 # Run the app
 if __name__ == '__main__':

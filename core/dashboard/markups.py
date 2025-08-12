@@ -1,5 +1,6 @@
 from typing import Dict
 
+import numpy as np
 from dash import Dash, html, dash_table, dcc
 import pandas as pd
 import plotly.graph_objects as go
@@ -67,3 +68,29 @@ def generate_fig_station_kpi(kpi_station: Dict[str, float]) -> go.Figure:
     )
 
     return fig_kpi
+
+
+def generate_fig_heatmap_power(power_profiles_vehicles: np.array) -> go.Figure:
+
+    nbr_vehicles = power_profiles_vehicles.shape[1]
+    nbr_timestep = power_profiles_vehicles.shape[0]
+
+    fig = go.Figure(
+        go.Heatmap(
+            z=power_profiles_vehicles.T,
+            y=[str(v) for v in range(nbr_vehicles)],
+            x=[str(t) for t in range(nbr_timestep)],
+            hovertemplate="Vehicle: %{y}<br>"
+                          "Time Step: %{x}<br>"
+                          "Power: %{z:.1f} (kW) <br>"
+                          "<extra></extra>",
+            colorscale='gnbu'
+        )
+    )
+    fig.update_layout(
+        title={"text": "Vehicle Charging Powers"},
+        yaxis={"title": {"text": "Vehicle"}},
+        xaxis={"title": {"text": "Time Step"}},
+    )
+
+    return fig
