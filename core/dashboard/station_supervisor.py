@@ -70,7 +70,7 @@ charging_demand_displayed = charging_demand[["powerNom", "energyRequired", "ener
         Input(component_id="slider-pgrid", component_property="value")
     ]
 )
-def run_planner(demand: List[Dict], pmax: List | np.array):
+def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Figure, go.Figure, List[Dict]):
 
     demand_evcsp = prepare_planning_data(data_demand=pd.DataFrame.from_records(demand), time_step=time_step)
     demand_df = pd.DataFrame.from_records(demand_evcsp)
@@ -126,21 +126,23 @@ def download_charging_plans(_, data: Dict) -> List[Dict]:
 
 # %% DASHBOARD APP
 
+button_config = {"outline": True, "color": "primary", "className": "me-1", "n_clicks": 0}
 
 app.layout = dbc.Container(
     [
-        dbc.Row([html.H4("Charging Station Supervisor", className="bg-primary text-white p-1 text-center")]),
+        dbc.Row([html.H2("Charging Station Day-Ahead Planning", className="bg-primary text-white p-1 text-center")]),
         html.Hr(),
         dbc.Row(
             [
                 dbc.Col(
                     [
-                        html.Button(children="Predict Charging Demand", n_clicks=0, id="button-charging-demand"),
-                        html.Button(children="Download Demand", n_clicks=0, id="button-download-charging-demand"),
+                        dbc.Button(children="Predict Charging Demand", id="button-charging-demand", **button_config),
+                        dbc.Button(children="Upload Demand", id="button-upload-charging-demand", **button_config),
+                        dbc.Button(children="Download Demand", id="button-download-charging-demand", **button_config),
                         dcc.Download(id="component-download-charging-demand"),
                         html.Hr(),
                         generate_table(data=charging_demand_displayed.to_dict("records"), id_tag="table-charging-demand")
-                    ]
+                    ],
                 ),
                 dbc.Col(
                     [
@@ -166,7 +168,7 @@ app.layout = dbc.Container(
                         dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
                     ]
                 ),
-                html.Button("Download Charging Plans", style={"marginTop": 5}, id="button-download-charging-plans"),
+                dbc.Button("Download Charging Plans", style={"marginTop": 5}, id="button-download-charging-plans", **button_config),
                 dcc.Download(id="component-download-charging-plans")
             ]
         ),
