@@ -1,5 +1,4 @@
 from typing import Dict, List
-
 import numpy as np
 from dash import Dash, html, dash_table, dcc
 from dash.dash_table.Format import Format, Scheme
@@ -41,6 +40,7 @@ def generate_table(data: List[Dict] | pd.DataFrame, id_tag: str) -> dash_table.D
         columns=columns,
         style_cell={'textAlign': 'right'}
     )
+
     return formated_table
 
 

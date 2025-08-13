@@ -1,3 +1,7 @@
+"""
+Demo for a simple station supervisor. This should not be the final application
+"""
+
 # Import packages
 from typing import List, Dict
 import numpy as np
@@ -27,7 +31,7 @@ capacity_grid[40:57] = 80
 solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
 solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
-# %% Demand Predictor
+# %% Callback Demand Predictor
 
 
 @app.callback(
@@ -51,13 +55,15 @@ charging_demand_evcsp = prepare_planning_data(data_demand=charging_demand, time_
 charging_demand_displayed = charging_demand[["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]]
 
 
-# %% DAY-AHEAD PLANNING
+# %% Callback - DAY-AHEAD PLANNING
+
 
 @app.callback(
     [
         Output(component_id="fig-station-power", component_property="figure"),
         Output(component_id="fig-station-kpi", component_property="figure"),
-        Output(component_id="fig-vehicles-powers", component_property="figure")
+        Output(component_id="fig-vehicles-powers", component_property="figure"),
+        Output(component_id="table-charging-plans", component_property="derived_virtual_data")
     ],
     [
         Input(component_id="table-charging-demand", component_property="data"),
@@ -91,9 +97,9 @@ def run_planner(demand: List[Dict], pmax: List | np.array):
     fig_kpi = generate_fig_station_kpi(kpi_station=kpi_station)
     fig_vehicle_power = generate_fig_heatmap_power(power_profiles_vehicles=powerProfiles)
 
-    return fig_power, fig_kpi, fig_vehicle_power
+    return fig_power, fig_kpi, fig_vehicle_power, pd.DataFrame(powerProfiles).to_dict("records")
 
-# %% Download Callbacks
+# %% Callbacks - Download
 
 
 @app.callback(
@@ -102,20 +108,20 @@ def run_planner(demand: List[Dict], pmax: List | np.array):
     State(component_id="table-charging-demand", component_property="derived_virtual_data"),
     prevent_initial_call=True
 )
-def download_charging_plans(_, data: Dict) -> List[Dict]:
+def download_charging_demand(_, data: Dict) -> List[Dict]:
     df = pd.DataFrame.from_records(data)
-    return [dcc.send_data_frame(df.to_excel, filename="charging_plans.xlsx")]
+    return [dcc.send_data_frame(df.to_excel, filename="charging_demand_forecast.xlsx")]
 
 
 @app.callback(
     [Output(component_id="component-download-charging-plans", component_property="data")],
     [Input(component_id="button-download-charging-plans", component_property="n_clicks")],
-    State(component_id="fig-vehicles-powers", component_property="figure"),
+    State(component_id="table-charging-plans", component_property="derived_virtual_data"),
     prevent_initial_call=True
 )
-def download_charging_plans(_, figure: go.Figure) -> List[Dict]:
-    df = pd.DataFrame(figure['data'][0]['z'], index=list(range(horizon_length)))
-    return [dcc.send_data_frame(df.to_csv, filename="charging_plans.csv")]
+def download_charging_plans(_, data: Dict) -> List[Dict]:
+    df = pd.DataFrame.from_records(data)
+    return [dcc.send_data_frame(df.to_excel, filename="charging_plans.xlsx")]
 
 
 # %% DASHBOARD APP
@@ -124,6 +130,7 @@ def download_charging_plans(_, figure: go.Figure) -> List[Dict]:
 app.layout = dbc.Container(
     [
         dbc.Row([html.H4("Charging Station Supervisor", className="bg-primary text-white p-1 text-center")]),
+        html.Hr(),
         dbc.Row(
             [
                 dbc.Col(
@@ -131,6 +138,7 @@ app.layout = dbc.Container(
                         html.Button(children="Predict Charging Demand", n_clicks=0, id="button-charging-demand"),
                         html.Button(children="Download Demand", n_clicks=0, id="button-download-charging-demand"),
                         dcc.Download(id="component-download-charging-demand"),
+                        html.Hr(),
                         generate_table(data=charging_demand_displayed.to_dict("records"), id_tag="table-charging-demand")
                     ]
                 ),
@@ -144,8 +152,10 @@ app.layout = dbc.Container(
         ),
         dbc.Row(
             [
+                html.Hr(),
                 html.H4(children="Max Power (kW)"),
                 dcc.Slider(id="slider-pgrid", min=50, max=400, value=100, step=20),
+                html.Hr()
             ]
         ),
         dbc.Row(
@@ -159,12 +169,13 @@ app.layout = dbc.Container(
                 html.Button("Download Charging Plans", style={"marginTop": 5}, id="button-download-charging-plans"),
                 dcc.Download(id="component-download-charging-plans")
             ]
-        )
+        ),
+        dbc.Row(generate_table(data=[], id_tag="table-charging-plans"))
     ],
     fluid=True
 )
 
+
 # %% Run the app
 if __name__ == '__main__':
-    # run_planner(pmax=capacity_grid)
     app.run(debug=True)
