@@ -1,7 +1,8 @@
 """
 Demo for a simple station supervisor. This should not be the final application
 """
-
+import base64
+import io
 # Import packages
 from typing import List, Dict
 import numpy as np
@@ -9,6 +10,8 @@ from dash import Dash, html, dash_table, dcc, callback, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
+from select import error
+
 from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
 from core.planner.day_ahead_planner import create_charging_plans
@@ -31,12 +34,14 @@ capacity_grid[40:57] = 80
 solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
 solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
+
 # %% Callback Demand Predictor
 
 
 @app.callback(
     [Output(component_id="table-charging-demand", component_property="data")],
     [Input(component_id="button-charging-demand", component_property="n_clicks")],
+    prevent_initial_call=False
 )
 def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
     """
@@ -66,7 +71,7 @@ charging_demand_displayed = charging_demand[["powerNom", "energyRequired", "ener
         Output(component_id="table-charging-plans", component_property="derived_virtual_data")
     ],
     [
-        Input(component_id="table-charging-demand", component_property="data"),
+        Input(component_id="table-charging-demand", component_property="derived_virtual_data"),
         Input(component_id="slider-pgrid", component_property="value")
     ]
 )
@@ -99,6 +104,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Fig
 
     return fig_power, fig_kpi, fig_vehicle_power, pd.DataFrame(powerProfiles).to_dict("records")
 
+
 # %% Callbacks - Download
 
 
@@ -123,6 +129,36 @@ def download_charging_plans(_, data: Dict) -> List[Dict]:
     df = pd.DataFrame.from_records(data)
     return [dcc.send_data_frame(df.to_excel, filename="charging_plans.xlsx")]
 
+# %% Callback - Upload Charging Forecast
+
+
+@app.callback(
+    [Output(component_id="table-charging-demand", component_property="data", allow_duplicate=True)],
+    [Input('component-upload-charging-demand', 'contents')],
+    State('component-upload-charging-demand', 'filename'),
+    prevent_initial_call=True
+)
+def upload_demand(raw_demand: str, filename) -> List[List[Dict]] | dbc.Alert:
+
+    content_type, content_string = raw_demand.split(',')
+    decoded = base64.b64decode(content_string)
+    try:
+        if 'csv' in filename:
+            # Assume that the user uploaded a CSV file
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+
+        elif 'xls' in filename:
+            # Assume that the user uploaded an excel file
+            df = pd.read_excel(io.BytesIO(decoded))
+        else:
+            return dbc.Alert("Invalid file extension", color="danger")
+
+        return [df.to_dict('records')]
+
+    except Exception as e:
+        print(e)
+        return dbc.Alert("Problem Loading Demand File", color="danger")
+
 
 # %% DASHBOARD APP
 
@@ -136,12 +172,21 @@ app.layout = dbc.Container(
             [
                 dbc.Col(
                     [
-                        dbc.Button(children="Predict Charging Demand", id="button-charging-demand", **button_config),
-                        dbc.Button(children="Upload Demand", id="button-upload-charging-demand", **button_config),
+                        dcc.Upload(
+                            id="component-upload-charging-demand",
+                            children=dbc.Button(
+                                children="Upload Demand", id="button-upload-charging-demand", **button_config
+                            )
+                        ),
+                        dbc.Button(children="Predict Demand", id="button-charging-demand", **button_config),
+                        html.Hr(),
+                        generate_table(data=charging_demand_displayed.to_dict("records"),
+                                       id_tag="table-charging-demand"),
                         dbc.Button(children="Download Demand", id="button-download-charging-demand", **button_config),
                         dcc.Download(id="component-download-charging-demand"),
+                        dbc.Button("Download Charging Plans", id="button-download-charging-plans", **button_config),
+                        dcc.Download(id="component-download-charging-plans"),
                         html.Hr(),
-                        generate_table(data=charging_demand_displayed.to_dict("records"), id_tag="table-charging-demand")
                     ],
                 ),
                 dbc.Col(
@@ -167,9 +212,7 @@ app.layout = dbc.Container(
                         dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
                         dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
                     ]
-                ),
-                dbc.Button("Download Charging Plans", style={"marginTop": 5}, id="button-download-charging-plans", **button_config),
-                dcc.Download(id="component-download-charging-plans")
+                )
             ]
         ),
         dbc.Row(generate_table(data=[], id_tag="table-charging-plans"))
