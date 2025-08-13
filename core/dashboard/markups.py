@@ -7,15 +7,19 @@ import pandas as pd
 import plotly.graph_objects as go
 
 
-def generate_table(data: List[Dict], id_tag: str) -> dash_table.DataTable:
+def generate_table(data: List[Dict] | pd.DataFrame, id_tag: str) -> dash_table.DataTable:
     """
     Format and Generate DataTable
     :param data: raw data, should come from the .to_dict("records") method of a pd.DataFrame
     :param id_tag: id for the table
     :return:
     """
-    # Formating Data Table
-    df = pd.DataFrame.from_records(data)
+    # Formating (numeric & text) Data Table
+    if ~isinstance(data, pd.DataFrame):
+        df = pd.DataFrame.from_records(data)
+    else:
+        df = data
+
     columns = []
     for col in df.columns:
         if pd.api.types.is_numeric_dtype(df[col]):
