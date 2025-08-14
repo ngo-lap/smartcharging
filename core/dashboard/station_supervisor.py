@@ -3,15 +3,12 @@ Demo for a simple station supervisor. This should not be the final application
 """
 import base64
 import io
-# Import packages
 from typing import List, Dict
 import numpy as np
 from dash import Dash, html, dash_table, dcc, callback, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
-from select import error
-
 from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
 from core.planner.day_ahead_planner import create_charging_plans
@@ -51,15 +48,13 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
     :return:
     """
     demand_raw = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
-    demand_raw = demand_raw.reset_index(names=["vehicle"])
     selected_columns = ["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
     return [demand_raw[selected_columns].to_dict("records")]
 
 
 charging_demand = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
 charging_demand_evcsp = prepare_planning_data(data_demand=charging_demand, time_step=time_step)
-charging_demand_displayed = charging_demand[["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]]
-charging_demand_displayed = charging_demand_displayed.reset_index(names=["vehicle"])
+charging_demand_displayed = charging_demand[["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]]
 
 # %% Callback - DAY-AHEAD PLANNING
 
