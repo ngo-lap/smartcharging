@@ -1,13 +1,17 @@
+import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 import cvxpy as cp
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
+import plotly.graph_objects as go
+import plotly.express as px
 
 
-if __name__ == '__main__':
+def simple_cpo_fixed_capacity():
 
+    # Meta-parameters
     nVE = 100
     time_step = 900         # [Seconds]
     horizon_length = 96     # [Time Step]
@@ -17,12 +21,11 @@ if __name__ == '__main__':
     solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     # Data Preparation
-    data_chargepoint = pd.read_excel("../../data/fleetScenarioSimu.xlsx", parse_dates=["session_start", "session_end"])
-    data_mobility = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
-    data_planning = prepare_planning_data(data_demand=data_mobility, time_step=time_step)
+    data_planning = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
+    data_planning = prepare_planning_data(data_demand=data_planning, time_step=time_step)
 
     # Planning
-    activationProfiles, powerProfiles, prob = create_charging_plans(
+    _, powerProfiles, evcsp = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity, n_sols=n_sols,
         formulation="milp", solver_options=solver_options_2
@@ -36,7 +39,7 @@ if __name__ == '__main__':
         time_step=time_step
     )
 
-    print(prob.solver_stats)
+    print(evcsp.solver_stats)
     print(kpi_station)
 
     # Visualization
@@ -46,3 +49,67 @@ if __name__ == '__main__':
     plt.xlabel("Time Idx")
     plt.ylabel("Total Charging Power (kW)")
     plt.show()
+
+
+def simple_cpo_variable_capacity():
+    """
+        Variable infrastructure limit
+
+    """
+
+    # Meta-parameters
+    nVE = 40
+    time_step = 900         # [Seconds]
+    horizon_length = 96     # [Time Step]
+    capacity = 200          # [kW] grid capacity
+    n_sols = 250
+    capacity_grid = np.array([100] * horizon_length)
+    capacity_grid[40:57] = 80
+    solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+
+    # Data Preparation
+    data_planning = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
+    data_planning = prepare_planning_data(data_demand=data_planning, time_step=time_step)
+
+    # PLANNING
+    _, powerProfiles, evcsp = create_charging_plans(
+        data_planning, horizon_length=horizon_length, time_step=time_step,
+        nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
+        formulation="milp", solver_options=solver_options_2
+    )
+
+    # KPI
+    kpi_station, kpi_per_ev = compute_energetic_kpi(
+        power_profiles=powerProfiles,
+        power_grid=capacity,
+        planning_input=data_planning,
+        time_step=time_step
+    )
+
+    print(evcsp.solver_stats)
+    print(kpi_station)
+
+    # Visualization
+    # plt.plot(range(horizon_length), powerProfiles.sum(axis=1))
+    # plt.plot(range(horizon_length), capacity_grid, '--')
+    # plt.xlabel("Time Idx")
+    # plt.ylabel("Total Charging Power (kW)")
+    # plt.show()
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=list(range(horizon_length)), y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
+    fig.add_trace(go.Scatter(x=list(range(horizon_length)), y=capacity_grid, name="Infras Capacity (kW)"))
+    # fig = px.area(x=list(range(horizon_length)), y=powerProfiles.sum(axis=1))
+
+    fig.update_layout(
+        title={"text": "Station Power Profiles"},
+        xaxis={"title": {"text": "Time Step"}},
+        yaxis={"title": {"text": "Power (kW)"}}
+    )
+    fig.show()
+
+
+if __name__ == '__main__':
+
+    simple_cpo_variable_capacity()
