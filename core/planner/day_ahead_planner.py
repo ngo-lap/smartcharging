@@ -9,6 +9,8 @@ from core.planner.optimization import evcsp_milp
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 from core.utility.logger.custom_loggers import setup_logger
+import plotly.graph_objects as go
+
 
 plt.rcParams["figure.figsize"] = (20, 12)
 logger = setup_logger(__name__)
@@ -77,10 +79,10 @@ def create_charging_plans(
 
 if __name__ == '__main__':
 
-    nVE = 100
+    nVE = 40
     time_step = 900         # [Seconds]
     horizon_length = 96     # [Time Step]
-    capacity = 200          # [kW] grid capacity
+    capacity = 100          # [kW] grid capacity
     n_sols = 250
     solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
     solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
@@ -117,12 +119,12 @@ if __name__ == '__main__':
     # print(prob2.solver_stats)
 
     # Visualization
-    fig, axs = plt.subplots(1, 2)  # 2x2 grid of subplots
-    plt.plot(range(horizon_length), powerProfiles.sum(axis=1))
-    plt.hlines(capacity, 0, horizon_length, linestyles='--')
-    plt.xlabel("Time Idx")
-    plt.ylabel("Total Charging Power (kW)")
-    plt.show()
+    # fig, axs = plt.subplots(1, 2)  # 2x2 grid of subplots
+    # plt.plot(range(horizon_length), powerProfiles.sum(axis=1))
+    # plt.hlines(capacity, 0, horizon_length, linestyles='--')
+    # plt.xlabel("Time Idx")
+    # plt.ylabel("Total Charging Power (kW)")
+    # plt.show()
 
     # f, ax = gantt_chart(
     #     n_task=nVE,
@@ -132,3 +134,25 @@ if __name__ == '__main__':
     # )
     # plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     # plt.show()
+
+    fig = go.Figure(
+        go.Heatmap(
+            z=powerProfiles.T,
+            y=[str(v) for v in range(nVE)],
+            x=[str(t) for t in range(horizon_length)],
+            hovertemplate="Vehicle: %{y}<br>"
+                          "Time Step: %{x}<br>"
+                          "Power: %{z:.1f} (kW) <br>"
+                          "<extra></extra>",
+            colorscale='gnbu'
+        )
+    )
+    fig.update_layout(
+        title={"text": "Vehicle Charging Powers"},
+        yaxis={"title": {"text": "Vehicle"}},
+        xaxis={"title": {"text": "Time Step"}},
+    )
+    # fig.update_xaxes(showspikes=True)
+    # fig.update_yaxes(showspikes=True)
+
+    # fig.show()
