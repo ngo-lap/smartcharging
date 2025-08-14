@@ -1,6 +1,6 @@
 # Containing column names for different type of data
 
 # For charging demand data
-_charging_demand = [
+charging_demand_columns = [
     "vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"
 ]

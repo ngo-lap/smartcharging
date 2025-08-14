@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 import copy
-from data.charging_demand import _charging_demand as required_columns
+from data.charging_demand import charging_demand_columns as required_columns
 
 
 def generate_demand_data(
@@ -51,7 +51,8 @@ def generate_demand_data(
 def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
 
     """
-        Return indices of the mobility data. The index 0 begins at 0:00 AM
+        Return indices of the arrival and departure time.
+        Index 0 begins at 0:00 AM
 
     :param data_demand:
     :param time_step:

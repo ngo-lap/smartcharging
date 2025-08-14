@@ -6,7 +6,8 @@ import json
 import pandas as pd
 from fastapi.testclient import TestClient
 from core.api.main import app
-from data.charging_demand import _charging_demand as required_columns
+from core.utility.data.data_processor import verify_planning_data
+from data.charging_demand import charging_demand_columns as required_columns
 
 client = TestClient(app)
 
@@ -27,7 +28,8 @@ def test_create_demand():
     assert response.status_code == 200
     assert response_content["source"] == "synthetic"
     assert len(demand_df) == 2
-    assert len(set(required_columns) - set(demand_df.columns)) == 0
+    # assert len(set(required_columns) - set(demand_df.columns)) == 0
+    verify_planning_data(df_planning=demand_df)     # If required columns are missing
 
 
 def test_create_charging_plans():
