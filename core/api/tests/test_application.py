@@ -11,28 +11,6 @@ from data.charging_demand import _charging_demand as required_columns
 client = TestClient(app)
 
 
-demand_sample = [
-    {
-        "vehicle": 0,
-        "powerNom": 7,
-        "energyRequired": 16.59,
-        "energyMax": 52,
-        "arrivalTime": 31,
-        "departureTime": 41
-    },
-    {
-        "vehicle": 1,
-        "powerNom": 11,
-        "energyRequired": 8.72,
-        "energyMax": 100,
-        "arrivalTime": 38,
-        "departureTime": 43
-    }
-]
-
-demand_sample_str = json.dumps(demand_sample, indent=4)
-
-
 def test_create_demand():
 
     """
@@ -58,11 +36,30 @@ def test_create_charging_plans():
     Test create charging plans endpoint.
     Maximum Infrastructure Power is twice the sum of all vehicles nominal powers to ensure that all vehicles are
     charged unlimited.
-    :return:
     """
 
+    # PREPARATION
+    demand_sample = [
+        {
+            "vehicle": 0,
+            "powerNom": 7,
+            "energyRequired": 16.59,
+            "energyMax": 52,
+            "arrivalTime": 31,
+            "departureTime": 41
+        },
+        {
+            "vehicle": 1,
+            "powerNom": 11,
+            "energyRequired": 8.72,
+            "energyMax": 100,
+            "arrivalTime": 38,
+            "departureTime": 43
+        }
+    ]
     p_max_infra = 2 * sum([v["powerNom"] for v in demand_sample])
 
+    # ACT
     response = client.post(
         "/cpo/charging-plan/MILP",
         json={
@@ -76,6 +73,7 @@ def test_create_charging_plans():
     response_content = response.json()
     plans_df: pd.DataFrame = pd.DataFrame.from_records(response_content["plans"])
 
+    # ASSERT
     assert response.status_code == 200
     assert response_content["algorithm"] == "MILP"
     assert len(plans_df) == 96
