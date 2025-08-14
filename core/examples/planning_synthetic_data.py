@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -51,7 +53,9 @@ def simple_cpo_fixed_capacity():
     plt.show()
 
 
-def simple_cpo_variable_capacity():
+# def simple_cpo_variable_capacity():
+if __name__ == '__main__':
+
     """
         Variable infrastructure limit
 
@@ -109,7 +113,12 @@ def simple_cpo_variable_capacity():
     )
     fig.show()
 
+    # Temp - export sample demand to json files
+    # selected_columns = ["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
+    # demand_json = data_planning[selected_columns].to_dict('records')
+    # demand_json_str = json.dumps(demand_json, indent=4)
+    # print(demand_json_str)
 
-if __name__ == '__main__':
-
-    simple_cpo_variable_capacity()
+# if __name__ == '__main__':
+#
+#     simple_cpo_variable_capacity()

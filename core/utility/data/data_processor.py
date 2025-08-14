@@ -43,6 +43,7 @@ def generate_demand_data(
             'chargingDuration': durations / 3600
         }, index=range(nbr_vehicles)
     )
+    data_generated = data_generated.reset_index(names=["vehicle"])
 
     return data_generated
 
@@ -79,7 +80,7 @@ def verify_planning_data(df_planning: pd.DataFrame) -> None:
     """
 
     # Required Column Names
-    # _required_field_names = ["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
+    # _required_field_names = ["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"
     # Check column names
     assert (
         set(required_columns).issubset(df_planning.columns),
