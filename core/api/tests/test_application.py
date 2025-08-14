@@ -6,9 +6,7 @@ import json
 import pandas as pd
 from fastapi.testclient import TestClient
 from core.api.main import app
-from experimental.demo_api import horizon_length
-import uvicorn
-
+from data.charging_demand import _charging_demand as required_columns
 
 client = TestClient(app)
 
@@ -24,7 +22,7 @@ demand_sample = [
     },
     {
         "vehicle": 1,
-        "powerNom": 7,
+        "powerNom": 11,
         "energyRequired": 8.72,
         "energyMax": 100,
         "arrivalTime": 38,
@@ -32,28 +30,62 @@ demand_sample = [
     }
 ]
 
-selected_columns = {"vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"}
 demand_sample_str = json.dumps(demand_sample, indent=4)
 
 
 def test_create_demand():
 
+    """
+    Test predict-charging-demand endpoint.
+    """
+
     response = client.get(
-        "cpo/predict-charging-demand/",
-        params={"source": "synthetic", "nbr_vehicles": 2, "horizon_length": 96, "time_step": 900}
+        "/cpo/predict-charging-demand/synthetic",
+        params={"nbr_vehicles": 2, "horizon_length": 96, "time_step": 900}
     )
+    response_content = response.json()
+    demand_df: pd.DataFrame = pd.DataFrame.from_records(response_content["demand"])
 
     assert response.status_code == 200
-
-    demand_df: pd.DataFrame = pd.DataFrame.from_records(response.json())
+    assert response_content["source"] == "synthetic"
     assert len(demand_df) == 2
-    assert len(selected_columns - set(demand_df.columns)) == 0
+    assert len(set(required_columns) - set(demand_df.columns)) == 0
 
 
-# def test_create_charging_plans():
-#     response = client.post("cpo/charging-plan/MILP")
-#     assert response.status_code == 200
-#     assert response.json() == {
-#     }
+def test_create_charging_plans():
 
+    """
+    Test create charging plans endpoint.
+    Maximum Infrastructure Power is twice the sum of all vehicles nominal powers to ensure that all vehicles are
+    charged unlimited.
+    :return:
+    """
 
+    p_max_infra = 2 * sum([v["powerNom"] for v in demand_sample])
+
+    response = client.post(
+        "/cpo/charging-plan/MILP",
+        json={
+            "planning_params": {
+                "creation_date": "", "nbr_vehicles": 2, "horizon_length": 96,
+                "time_step": 900, "pmax_infrastructure": p_max_infra
+            },
+            "demand": {"creation_date": "", "source": "synthetic", "demand": demand_sample}
+        }
+    )
+    response_content = response.json()
+    plans_df: pd.DataFrame = pd.DataFrame.from_records(response_content["plans"])
+
+    assert response.status_code == 200
+    assert response_content["algorithm"] == "MILP"
+    assert len(plans_df) == 96
+    assert len(plans_df.columns) == 2
+
+    # Test Charging Plans for each vehicle
+    for v in demand_sample:
+        assert min(plans_df.iloc[:, v["vehicle"]]) == 0, "Minimum charging power > 0"
+        assert max(plans_df.iloc[:, v["vehicle"]]) == v['powerNom'], "Maximum power is not at PNom"
+        assert all(plans_df.iloc[0:v["arrivalTime"], v["vehicle"]] == 0.), "Vehicle charged before arrival"
+        assert all(plans_df.iloc[v["departureTime"]::, v["vehicle"]] == 0.), "Vehicle charged after departure"
+        assert (900 / 3600) * plans_df.iloc[:, v["vehicle"]].sum() >= v["energyRequired"], "Required energy not met"
+        assert (900 / 3600) * plans_df.iloc[:, v["vehicle"]].sum() <= v["energyMax"], "More charging energy than max energy"
