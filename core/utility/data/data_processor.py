@@ -2,6 +2,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 import copy
+from data.charging_demand import _charging_demand as required_columns
 
 
 def generate_demand_data(
@@ -21,9 +22,9 @@ def generate_demand_data(
     powerNomSet: List[int] = [6, 7, 11, 22]  # kW
     capacitykWh: List[int] = [30, 52, 88, 100]  # kWh
     deltaT: int = int(3600 / time_step)  # 3600 / timestep
-    powerNom: np.array = np.random.choice(powerNomSet, nbr_vehicles)  # Nominal Charging Power [kW]
+    powerNom: np.array = np.random.choice(powerNomSet, nbr_vehicles)    # Nominal Charging Power [kW]
     energyMax: np.array = np.random.choice(capacitykWh, nbr_vehicles)
-    energyRequired: np.array = np.random.randint(5, 80, nbr_vehicles)  # Total charging energy [kWh]
+    energyRequired: np.array = np.random.randint(5, 80, nbr_vehicles)   # Total charging energy [kWh]
 
     # Time Data [Seconds from 00:00]
     arrivalTime: np.array = np.random.randint(6 * 3600, 12 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
@@ -47,6 +48,7 @@ def generate_demand_data(
 
 
 def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
+
     """
         Return indices of the mobility data. The index 0 begins at 0:00 AM
 
@@ -54,14 +56,37 @@ def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd
     :param time_step:
     :return:
     """
-    fields2convert = ["arrivalTime", "departureTime", "parkingDuration", "chargingDuration"]
+
+    fields2convert = ["arrivalTime", "departureTime"]       # , "parkingDuration", "chargingDuration"
     data_mobility_idx = copy.deepcopy(data_demand)
     data_mobility_idx.loc[:, fields2convert] = np.floor(
         data_demand.loc[:, fields2convert] * 3600 / time_step
     )
     data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
 
+    verify_planning_data(df_planning=data_mobility_idx)
+
     return data_mobility_idx
+
+
+def verify_planning_data(df_planning: pd.DataFrame) -> None:
+    """
+        Check if planning data is correct: with proper field names and proper values.
+
+    :param df_planning: Planning dataframe
+    :return:
+
+    """
+
+    # Required Column Names
+    # _required_field_names = ["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
+    # Check column names
+    assert (
+        set(required_columns).issubset(df_planning.columns),
+        f"Missing columns names {set(required_columns).difference(df_planning.columns)}"
+    )
+
+    # Check value types
 
 
 if __name__ == '__main__':
