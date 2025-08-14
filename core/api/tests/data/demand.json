@@ -1,0 +1,18 @@
+[
+    {
+        "vehicle": 0,
+        "powerNom": 7,
+        "energyRequired": 16.59,
+        "energyMax": 52,
+        "arrivalTime": 31,
+        "departureTime": 41
+    },
+    {
+        "vehicle": 1,
+        "powerNom": 7,
+        "energyRequired": 8.72,
+        "energyMax": 100,
+        "arrivalTime": 38,
+        "departureTime": 43
+    }
+]
