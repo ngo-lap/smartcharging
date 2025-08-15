@@ -72,9 +72,14 @@ if __name__ == '__main__':
     solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
     solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
+    horizon_start = np.datetime64('today')
+    horizon_datetime = horizon_start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+
     # Data Preparation
-    data_planning = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
-    data_planning = prepare_planning_data(data_demand=data_planning, time_step=time_step)
+    data_sessions = generate_demand_data(
+        nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step, horizon_start=horizon_start
+    )
+    data_planning = prepare_planning_data(data_demand=data_sessions, time_step=time_step)
 
     # PLANNING
     _, powerProfiles, evcsp = create_charging_plans(
@@ -102,9 +107,9 @@ if __name__ == '__main__':
     # plt.show()
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=list(range(horizon_length)), y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
-    fig.add_trace(go.Scatter(x=list(range(horizon_length)), y=capacity_grid, name="Infras Capacity (kW)"))
-    # fig = px.area(x=list(range(horizon_length)), y=powerProfiles.sum(axis=1))
+    fig.add_trace(go.Scatter(x=horizon_datetime, y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
+    fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Infras Capacity (kW)"))
+    # fig = px.area(x=horizon_datetime, y=powerProfiles.sum(axis=1))
 
     fig.update_layout(
         title={"text": "Station Power Profiles"},

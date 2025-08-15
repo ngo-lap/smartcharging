@@ -7,7 +7,8 @@ from data.charging_demand import charging_demand_columns as required_columns
 
 
 def generate_demand_data(
-        nbr_vehicles: int, horizon_length: int = 24, time_step: int = 900
+        nbr_vehicles: int, horizon_length: int = 24, time_step: int = 900,
+        horizon_start: np.datetime64 = np.datetime64('today')
 ) -> pd.DataFrame:
     """
         Artificially generate mobility demand data
@@ -15,6 +16,7 @@ def generate_demand_data(
     :param nbr_vehicles: Number of vehicles
     :param horizon_length: [hour] the horizon length
     :param time_step: [second] time step of the planning problem
+    :param horizon_start: the beginning of the horizon
     :return:
     """
 
@@ -28,9 +30,9 @@ def generate_demand_data(
     energyRequired: np.array = np.random.randint(5, 80, nbr_vehicles)   # Total charging energy [kWh]
 
     # Time Data [Seconds from 00:00]
-    arrivalTime: np.array = np.random.randint(6 * 3600, 12 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
+    arrivalTime: np.array = np.random.randint(5 * 3600, 16 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
     parkingDuration: np.array = np.random.randint(1 * 3600, 5 * 3600, nbr_vehicles)  # Parking duration [Seconds]
-    departureTime: np.array = arrivalTime + parkingDuration
+    departureTime: np.array = np.clip(a=arrivalTime + parkingDuration, a_min=0, a_max=23 * 3600)
 
     durations: np.array = 3600 * energyRequired / powerNom  # Charging Duration [seconds]
     durations = np.minimum(parkingDuration, durations)  # Limit charging duration to parking time
@@ -39,7 +41,8 @@ def generate_demand_data(
         {
             'powerNom': powerNom, 'energyRequired': (durations / 3600) * powerNom,
             'energyMax': energyMax,
-            'arrivalTime': arrivalTime / 3600, 'departureTime': departureTime / 3600,
+            'arrivalTime': horizon_start + np.timedelta64(1, 's') * arrivalTime,
+            'departureTime': horizon_start + np.timedelta64(1, 's') * departureTime,
             'parkingDuration': parkingDuration / 3600,
             'chargingDuration': durations / 3600
         }, index=range(nbr_vehicles)
