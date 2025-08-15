@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 import numpy as np
 import pandas as pd
@@ -48,11 +49,13 @@ def generate_demand_data(
     return data_generated
 
 
-def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd.DataFrame:
+def prepare_planning_data(
+        data_demand: pd.DataFrame, time_step: int = 900
+) -> pd.DataFrame:
 
     """
         Return indices of the arrival and departure time.
-        Index 0 begins at 0:00 AM
+        Index 0 begins at 0:00 AM:
 
     :param data_demand:
     :param time_step:
@@ -69,6 +72,37 @@ def prepare_planning_data(data_demand: pd.DataFrame, time_step: int = 900) -> pd
     verify_planning_data(df_planning=data_mobility_idx)
 
     return data_mobility_idx
+
+
+def indexing_arrival_departure_time(data: pd.DataFrame, time_step: int = 900, horizon_start: datetime.datetime = None):
+
+    """
+    Convert arrival and departure time stamps to indices distance (1 index is 1 time_step) from horizon_start
+
+    :param data: a dataframe containing arrival and departure time stamps.
+        The first column is the arrival and the second column is the departure.
+    :param time_step: time step in seconds
+    :param horizon_start: timestamp of horizon start.
+        If None is given, the beginning of the earliest arrival date is used, i.e. datetime.datetime(2025, 1, 27, 0, 0)
+
+    :return: a DataFrame with arrival and departure integer indices,  the horizon_start is at 0
+
+    """
+
+    assert len(data.columns) == 2, "Arrival and Departure DataFrame must have 2 columns"
+
+    if horizon_start is None:
+        horizon_day = data.iloc[:, 0].dt.date.min()
+        horizon_start = datetime.datetime(horizon_day.year, horizon_day.month, horizon_day.day, 0, 0, 0)
+
+    arrival_horizon = (data.iloc[:, 0] - horizon_start) / np.timedelta64(time_step, 's')
+    departure_horizon = (data.iloc[:, 1] - horizon_start) / np.timedelta64(time_step, 's')
+
+    # Convert to integer distance
+    arrival_horizon = arrival_horizon.astype('int')
+    departure_horizon = departure_horizon.astype('int')
+
+    return pd.concat([arrival_horizon, departure_horizon], axis=1)
 
 
 def verify_planning_data(df_planning: pd.DataFrame) -> None:
