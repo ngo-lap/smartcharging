@@ -50,7 +50,8 @@ def generate_demand_data(
 
 
 def prepare_planning_data(
-        data_demand: pd.DataFrame, time_step: int = 900
+        data_demand: pd.DataFrame, time_step: int = 900,
+        arrival_column: str = "arrivalTime", departure_column: str = "departureTime"
 ) -> pd.DataFrame:
 
     """
@@ -59,15 +60,23 @@ def prepare_planning_data(
 
     :param data_demand:
     :param time_step:
+    :param arrival_column:
+    :param departure_column:
     :return:
     """
 
-    fields2convert = ["arrivalTime", "departureTime"]       # , "parkingDuration", "chargingDuration"
+    fields2convert = [arrival_column, departure_column]
     data_mobility_idx = copy.deepcopy(data_demand)
-    data_mobility_idx.loc[:, fields2convert] = np.floor(
-        data_demand.loc[:, fields2convert] * 3600 / time_step
-    )
-    data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
+
+    if all(pd.api.types.is_float_dtype(data_mobility_idx[c]) for c in fields2convert):
+        data_mobility_idx.loc[:, fields2convert] = np.floor(
+            data_demand.loc[:, fields2convert] * 3600 / time_step
+        )
+        data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
+
+    else:
+        converted_time = indexing_arrival_departure_time(data_mobility_idx[[arrival_column, departure_column]])
+        data_mobility_idx[fields2convert] = converted_time
 
     verify_planning_data(df_planning=data_mobility_idx)
 
