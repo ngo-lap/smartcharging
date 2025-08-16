@@ -15,13 +15,14 @@ from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
+from data.charging_demand import charging_demand_columns as required_columns
 
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
 
 # %% DATA PREPARATION
 # Meta-parameters
-nVE = 40
+nVE = 10
 time_step = 900  # [Seconds]
 horizon_length = int(24 * 3600 / time_step)  # [Time Step]
 capacity = 200  # [kW] grid capacity
@@ -48,13 +49,12 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
     :return:
     """
     demand_raw = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
-    selected_columns = ["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
-    return [demand_raw[selected_columns].to_dict("records")]
+    return [demand_raw[required_columns].to_dict("records")]
 
 
 charging_demand = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
 charging_demand_evcsp = prepare_planning_data(data_demand=charging_demand, time_step=time_step)
-charging_demand_displayed = charging_demand[["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]]
+charging_demand_displayed = charging_demand[required_columns]
 
 # %% Callback - DAY-AHEAD PLANNING
 
@@ -73,8 +73,14 @@ charging_demand_displayed = charging_demand[["vehicle", "powerNom", "energyRequi
 )
 def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Figure, go.Figure, List[Dict]):
 
-    demand_evcsp = prepare_planning_data(data_demand=pd.DataFrame.from_records(demand), time_step=time_step)
-    demand_df = pd.DataFrame.from_records(demand_evcsp)
+    demand_raw = pd.DataFrame.from_records(demand)
+    # demand_raw["arrivalTime"] = pd.to_datetime(demand_raw["arrivalTime"])
+    # demand_raw["departureTime"] = pd.to_datetime(demand_raw["departureTime"])
+
+    demand_df = prepare_planning_data(
+        data_demand=demand_raw, time_step=time_step, horizon_start=np.datetime64("today")
+    )
+    # demand_df = pd.DataFrame.from_records(demand_evcsp)
 
     _, powerProfiles, evcsp = create_charging_plans(
         demand_df, horizon_length=horizon_length, time_step=time_step,
@@ -89,14 +95,17 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Fig
         time_step=time_step
     )
 
+    horizon_start = np.datetime64('today')
+    horizon_datetime = horizon_start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+
     fig_power = generate_fig_station_power(
-        x=list(range(horizon_length)),
+        x=horizon_datetime,
         power_profile=powerProfiles.sum(axis=1),
         capacity_grid=pmax
     )
 
     fig_kpi = generate_fig_station_kpi(kpi_station=kpi_station)
-    fig_vehicle_power = generate_fig_heatmap_power(power_profiles_vehicles=powerProfiles)
+    fig_vehicle_power = generate_fig_heatmap_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
 
     return fig_power, fig_kpi, fig_vehicle_power, pd.DataFrame(powerProfiles).to_dict("records")
 

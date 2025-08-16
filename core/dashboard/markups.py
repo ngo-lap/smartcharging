@@ -100,7 +100,7 @@ def generate_fig_station_kpi(kpi_station: Dict[str, float]) -> go.Figure:
     return fig_kpi
 
 
-def generate_fig_heatmap_power(power_profiles_vehicles: np.array) -> go.Figure:
+def generate_fig_heatmap_power(horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.array) -> go.Figure:
 
     nbr_vehicles = power_profiles_vehicles.shape[1]
     nbr_timestep = power_profiles_vehicles.shape[0]
@@ -109,7 +109,7 @@ def generate_fig_heatmap_power(power_profiles_vehicles: np.array) -> go.Figure:
         go.Heatmap(
             z=power_profiles_vehicles.T,
             y=[str(v) for v in range(nbr_vehicles)],
-            x=[str(t) for t in range(nbr_timestep)],
+            x=horizon_datetime,
             hovertemplate="Vehicle: %{y}<br>"
                           "Time Step: %{x}<br>"
                           "Power: %{z:.1f} (kW) <br>"
