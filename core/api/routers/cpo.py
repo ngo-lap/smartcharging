@@ -50,8 +50,11 @@ async def get_charging_plans(
             nbr_vehicle=planning_params.nbr_vehicles,
             capacity_grid=planning_params.pmax_infrastructure,
             n_sols=0,
-            formulation="milp",
-            solver_options={"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+            formulation=algorithm,
+            solver_options={
+                "solver": cp.SCIPY if algorithm == "milp" else cp.CLARABEL,
+                "time_limit": 60.0, "verbose": False, "warm_start": False
+            }
         )
 
     else:
