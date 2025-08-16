@@ -33,6 +33,7 @@ def compute_energetic_kpi(
     # Overall KPI
     kpi_station = dict()
     kpi_station["energykWh"] = energy_kWh.sum()
+    kpi_station["nbrVehicles"] = power_profiles.shape[-1]
     kpi_station["energyPlannedkWh"] = planning_input["energyRequired"].sum()
     kpi_station["workloadPct"] = 100 * kpi_station["energykWh"] / kpi_station["energyPlannedkWh"]
     kpi_station["peakPowerkW"] = power_profiles.sum(axis=1).max()

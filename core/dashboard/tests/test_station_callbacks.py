@@ -37,3 +37,6 @@ def test_run_planner(demand_raw):
     assert len(plans_df.columns) == len(demand_raw)
     assert len(plans_df) == 96
 
+
+def test_predict_charging_demand(demand_raw, charging_plans: List[Dict]):
+    pass

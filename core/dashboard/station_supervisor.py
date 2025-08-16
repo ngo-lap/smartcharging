@@ -121,7 +121,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Fig
         capacity_grid=pmax
     )
 
-    fig_kpi = generate_fig_station_kpi(kpi_station=kpi_station)
+    fig_kpi = generate_fig_station_kpi(station=station, kpi_station=kpi_station)
     fig_vehicle_power = generate_fig_heatmap_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
 
     return fig_power, fig_kpi, fig_vehicle_power, pd.DataFrame(powerProfiles).to_dict("records")
