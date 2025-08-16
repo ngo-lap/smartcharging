@@ -11,8 +11,9 @@ import cvxpy as cp
 import dash_bootstrap_components as dbc
 from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
+from core.dashboard.pages.layouts import station_layout
 from core.planner.day_ahead_planner import create_charging_plans
-from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
+from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
 from data.charging_demand import charging_demand_columns as required_columns
@@ -96,7 +97,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Fig
     )
 
     horizon_start = np.datetime64('today')
-    horizon_datetime = horizon_start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+    horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
 
     fig_power = generate_fig_station_power(
         x=horizon_datetime,
@@ -167,63 +168,7 @@ def upload_demand(raw_demand: str, filename) -> List[List[Dict]] | dbc.Alert:
 
 # %% DASHBOARD APP
 
-button_config = {"outline": True, "color": "primary", "className": "me-1", "n_clicks": 0}
-
-app.layout = dbc.Container(
-    [
-        dbc.Row([html.H2("Charging Station Day-Ahead Planning", className="bg-primary text-white p-1 text-center")]),
-        html.Hr(),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dcc.Upload(
-                            id="component-upload-charging-demand",
-                            children=dbc.Button(
-                                children="Upload Demand", id="button-upload-charging-demand", **button_config
-                            )
-                        ),
-                        dbc.Button(children="Predict Demand", id="button-charging-demand", **button_config),
-                        html.Hr(),
-                        generate_table(data=charging_demand_displayed.to_dict("records"),
-                                       id_tag="table-charging-demand"),
-                        dbc.Button(children="Download Demand", id="button-download-charging-demand", **button_config),
-                        dcc.Download(id="component-download-charging-demand"),
-                        dbc.Button("Download Charging Plans", id="button-download-charging-plans", **button_config),
-                        dcc.Download(id="component-download-charging-plans"),
-                        html.Hr(),
-                    ],
-                ),
-                dbc.Col(
-                    [
-                        # html.H4(children="Planned Station KPI", className="text-center"),
-                        dcc.Graph(figure={}, id="fig-station-kpi")
-                    ]
-                )
-            ],
-        ),
-        dbc.Row(
-            [
-                html.Hr(),
-                html.H4(children="Max Power (kW)"),
-                dcc.Slider(id="slider-pgrid", min=50, max=400, value=100, step=20),
-                html.Hr()
-            ]
-        ),
-        dbc.Row(
-            [
-                dcc.Tabs(
-                    [
-                        dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
-                        dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
-                    ]
-                )
-            ]
-        ),
-        dbc.Row(generate_table(data=[], id_tag="table-charging-plans"))
-    ],
-    fluid=True
-)
+app.layout = station_layout
 
 
 # %% Run the app
