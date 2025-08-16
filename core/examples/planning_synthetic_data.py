@@ -14,7 +14,7 @@ import plotly.express as px
 def simple_cpo_fixed_capacity():
 
     # Meta-parameters
-    nVE = 100
+    nVE = 40
     time_step = 900         # [Seconds]
     horizon_length = 96     # [Time Step]
     capacity = 200          # [kW] grid capacity
@@ -53,8 +53,7 @@ def simple_cpo_fixed_capacity():
     plt.show()
 
 
-# def simple_cpo_variable_capacity():
-if __name__ == '__main__':
+def simple_cpo_variable_capacity():
 
     """
         Variable infrastructure limit
@@ -68,9 +67,9 @@ if __name__ == '__main__':
     capacity = 200          # [kW] grid capacity
     n_sols = 250
     capacity_grid = np.array([100] * horizon_length)
-    capacity_grid[40:57] = 80
-    solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
-    solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    # capacity_grid[40:57] = 80
+    solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    # solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     horizon_start = np.datetime64('today')
     horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
@@ -85,7 +84,7 @@ if __name__ == '__main__':
     _, powerProfiles, evcsp = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
-        formulation="milp", solver_options=solver_options_2
+        formulation="lp", solver_options=solver_options
     )
 
     # KPI
@@ -100,23 +99,23 @@ if __name__ == '__main__':
     print(kpi_station)
 
     # Visualization
-    # plt.plot(range(horizon_length), powerProfiles.sum(axis=1))
-    # plt.plot(range(horizon_length), capacity_grid, '--')
-    # plt.xlabel("Time Idx")
-    # plt.ylabel("Total Charging Power (kW)")
-    # plt.show()
+    plt.plot(horizon_datetime, powerProfiles.sum(axis=1))
+    plt.plot(horizon_datetime, capacity_grid, '--')
+    plt.xlabel("Time Idx")
+    plt.ylabel("Total Charging Power (kW)")
+    plt.show()
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=horizon_datetime, y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
-    fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Infras Capacity (kW)"))
-    # fig = px.area(x=horizon_datetime, y=powerProfiles.sum(axis=1))
-
-    fig.update_layout(
-        title={"text": "Station Power Profiles"},
-        xaxis={"title": {"text": "Time Step"}},
-        yaxis={"title": {"text": "Power (kW)"}}
-    )
-    fig.show()
+    # fig = go.Figure()
+    # fig.add_trace(go.Scatter(x=horizon_datetime, y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
+    # fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Infras Capacity (kW)"))
+    # # fig = px.area(x=horizon_datetime, y=powerProfiles.sum(axis=1))
+    #
+    # fig.update_layout(
+    #     title={"text": "Station Power Profiles"},
+    #     xaxis={"title": {"text": "Time Step"}},
+    #     yaxis={"title": {"text": "Power (kW)"}}
+    # )
+    # fig.show()
 
     # Temp - export sample demand to json files
     # selected_columns = ["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
@@ -124,6 +123,7 @@ if __name__ == '__main__':
     # demand_json_str = json.dumps(demand_json, indent=4)
     # print(demand_json_str)
 
-# if __name__ == '__main__':
-#
-#     simple_cpo_variable_capacity()
+
+if __name__ == '__main__':
+
+    simple_cpo_variable_capacity()

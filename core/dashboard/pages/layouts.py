@@ -9,8 +9,7 @@ button_config = {"outline": True, "color": "primary", "className": "me-1", "n_cl
 
 def create_station_layout(charging_demand: List[Dict]) -> dbc.Container:
 
-    station_layout = dbc.Container(
-        [
+    components = [
             dbc.Row([html.H2("Charging Station Day-Ahead Planning", className="bg-primary text-white p-1 text-center")]),
             html.Hr(),
             dbc.Row(
@@ -60,8 +59,20 @@ def create_station_layout(charging_demand: List[Dict]) -> dbc.Container:
                 ]
             ),
             dbc.Row(generate_table(data=[], id_tag="table-charging-plans"))
-        ],
-        fluid=True
+        ]
+
+    # Wrap layout components around a spinner
+    station_layout = dbc.Container(
+        dcc.Loading(
+            components,
+            overlay_style={"visibility": "visible", "opacity": .5, "backgroundColor": "white"},
+            type="circle",
+            target_components={
+                "table-charging-plans": ["derived_virtual_data"],
+                "table-charging-demand": ["data", "derived_virtual_data"]
+            }, delay_hide=1000., delay_show=1000.,
+        )
+        , fluid=True
     )
 
     return station_layout
