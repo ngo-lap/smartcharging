@@ -1,8 +1,6 @@
-from typing import Dict, List, Literal
-import pandas as pd
+from typing import Dict
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI
 from core.api.routers import cpo
 
 description = """
