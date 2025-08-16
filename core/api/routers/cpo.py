@@ -34,14 +34,14 @@ async def predict_charging_demand(
 
 @router.post("/charging-plan/{algorithm}", )
 async def get_charging_plans(
-        algorithm: Literal["MILP", "1C1S"],
+        algorithm: Literal["milp", "lp"],
         demand: DemandData,
         planning_params: PlanningParameters
 ) -> ChargingPlanData:
 
     demand_df = pd.DataFrame.from_records(demand.demand)
 
-    if algorithm == "MILP" or "1C1S":
+    if algorithm == "milp" or "lp":
 
         _, powerVehicles, _ = create_charging_plans(
             data_demand=demand_df,
@@ -55,7 +55,7 @@ async def get_charging_plans(
         )
 
     else:
-        raise HTTPException(status_code=500, detail=f"Invalid algorithm {algorithm}, must be MILP or 1C1S")
+        raise HTTPException(status_code=500, detail=f"Invalid algorithm {algorithm}, must be milp or lp")
 
     charging_plans = ChargingPlanData(
         creation_date=datetime.now().strftime(format_time),
