@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import cvxpy as cp
-from core.planner.optimization import evcsp_milp
+from core.planner.optimization import evcsp_milp, evcsp_lp
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 from core.utility.logger.custom_loggers import setup_logger
@@ -57,22 +57,21 @@ def create_charging_plans(
     # Calling the EVCSP planner: either CP (constraint programming), MILP or Heuristics.
     # profile, totalPowerProfile = EVCSP(data_mobility, horizon_length, 'CP')
 
-    # if formulation == "milp":
+    if formulation == "milp":
 
-    activationProfiles, powerProfiles, evcsp = evcsp_milp(
-        nbr_vehicle, arrival, departure, power, energyRequired,
-        energyMax, capacity_grid, horizon_length, time_step,
-        solver_options
-    )
+        activationProfiles, powerProfiles, evcsp = evcsp_milp(
+            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
+            required_energy=energyRequired, capacity_nom=energyMax, p_max_infra=capacity_grid,
+            horizon_length=horizon_length, time_step=time_step, solver_options=solver_options
+        )
 
-    # elif formulation == "lp":
-    #
-    #     profile, totalPower, evcsp = evcsp_lp(
-    #         nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure,
-    #         power_nom=power, required_energy=energyRequired, energy_max=energyMax, capacity_grid=capacity_grid,
-    #         horizon_length=horizon_length, time_step=time_step,
-    #         solver_options=solver_options
-    #     )
+    elif formulation == "lp":
+
+        activationProfiles, powerProfiles, evcsp = evcsp_lp(
+            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
+            required_energy=energyRequired, capacity_nom=energyMax, p_max_infra=capacity_grid,
+            horizon_length=horizon_length, time_step=time_step, solver_options=solver_options
+        )
 
     return activationProfiles, powerProfiles, evcsp
 

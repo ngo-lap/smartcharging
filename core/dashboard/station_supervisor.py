@@ -25,15 +25,16 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
 # %% DATA PREPARATION - STATION OBJECT CREATION
 
 station: Station = Station(
-    nbr_terminals=10,
+    nbr_terminals=30,
     transformer_capacity=100,
     planning_parameters=PlanningParameters(
         nbr_vehicles=10, time_step=900, horizon_length=96, pmax_infrastructure=100, creation_date=""
     )
 )
 
-# solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
-solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+# Solver options: for LP formulation, CLARABEL performs much better in terms of time than SCIPY (HiGHs)
+solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+# solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
 # Charging demand
 charging_demand = generate_demand_data(
@@ -99,7 +100,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Fig
         demand_df,
         horizon_length=station.planning_parameters.horizon_length, time_step=station.planning_parameters.time_step,
         nbr_vehicle=nbr_vehicles, capacity_grid=pmax, n_sols=10,
-        formulation="milp", solver_options=solver_options
+        formulation="lp", solver_options=solver_options
     )
 
     kpi_station, kpi_per_ev = compute_energetic_kpi(
