@@ -2,7 +2,7 @@ from typing import List, Dict
 
 import pandas as pd
 import pytest
-from core.dashboard.station_supervisor import run_planner
+from core.dashboard.main import run_planner
 
 
 @pytest.fixture
