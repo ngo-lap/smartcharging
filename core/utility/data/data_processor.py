@@ -73,12 +73,12 @@ def prepare_planning_data(
     data_mobility_idx = copy.deepcopy(data_demand)
 
     # Convert to datetime64
-    data_demand[arrival_column] = pd.to_datetime(data_demand[arrival_column])
-    data_demand[departure_column] = pd.to_datetime(data_demand[departure_column])
+    data_mobility_idx[arrival_column] = pd.to_datetime(data_mobility_idx[arrival_column])
+    data_mobility_idx[departure_column] = pd.to_datetime(data_mobility_idx[departure_column])
 
     if all(pd.api.types.is_float_dtype(data_mobility_idx[c]) for c in fields2convert):
         data_mobility_idx.loc[:, fields2convert] = np.floor(
-            data_demand.loc[:, fields2convert] * 3600 / time_step
+            data_mobility_idx.loc[:, fields2convert] * 3600 / time_step
         )
         data_mobility_idx[fields2convert] = data_mobility_idx[fields2convert].astype('int32')
 
