@@ -9,9 +9,10 @@ from dash import Dash, html, dash_table, dcc, callback, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
+from core.api.schemas.cpo import Station, PlanningParameters
 from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
-from core.dashboard.pages.layouts import station_layout
+from core.dashboard.pages.layouts import create_station_layout
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
@@ -21,18 +22,30 @@ from data.charging_demand import charging_demand_columns as required_columns
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
 
-# %% DATA PREPARATION
-# Meta-parameters
-nVE = 10
-time_step = 900  # [Seconds]
-horizon_length = int(24 * 3600 / time_step)  # [Time Step]
-capacity = 200  # [kW] grid capacity
-n_sols = 250
-capacity_grid = np.array([100] * horizon_length)
-capacity_grid[40:57] = 80
-solver_options_1 = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
-solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+# %% DATA PREPARATION - STATION OBJECT CREATION
 
+station: Station = Station(
+    nbr_terminals=10,
+    transformer_capacity=100,
+    planning_parameters=PlanningParameters(
+        nbr_vehicles=10, time_step=900, horizon_length=96, pmax_infrastructure=100, creation_date=""
+    )
+)
+
+# solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+
+# Charging demand
+charging_demand = generate_demand_data(
+    nbr_vehicles=station.nbr_terminals,
+    horizon_length=station.planning_parameters.horizon_length,
+    time_step=station.planning_parameters.time_step
+)
+
+charging_demand_evcsp = prepare_planning_data(
+    data_demand=charging_demand, time_step=station.planning_parameters.time_step
+)
+charging_demand_displayed = charging_demand[required_columns]
 
 # %% Callback Demand Predictor
 
@@ -49,13 +62,13 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
     :param n_clicks:
     :return:
     """
-    demand_raw = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
+    demand_raw = generate_demand_data(
+        nbr_vehicles=station.nbr_terminals,
+        horizon_length=station.planning_parameters.horizon_length,
+        time_step=station.planning_parameters.time_step
+    )
     return [demand_raw[required_columns].to_dict("records")]
 
-
-charging_demand = generate_demand_data(nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step)
-charging_demand_evcsp = prepare_planning_data(data_demand=charging_demand, time_step=time_step)
-charging_demand_displayed = charging_demand[required_columns]
 
 # %% Callback - DAY-AHEAD PLANNING
 
@@ -74,30 +87,33 @@ charging_demand_displayed = charging_demand[required_columns]
 )
 def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Figure, go.Figure, List[Dict]):
 
-    demand_raw = pd.DataFrame.from_records(demand)
-    # demand_raw["arrivalTime"] = pd.to_datetime(demand_raw["arrivalTime"])
-    # demand_raw["departureTime"] = pd.to_datetime(demand_raw["departureTime"])
-
     demand_df = prepare_planning_data(
-        data_demand=demand_raw, time_step=time_step, horizon_start=np.datetime64("today")
+        data_demand=pd.DataFrame.from_records(demand),
+        time_step=station.planning_parameters.time_step,
+        horizon_start=np.datetime64("today")
     )
-    # demand_df = pd.DataFrame.from_records(demand_evcsp)
+
+    nbr_vehicles = len(demand_df)
 
     _, powerProfiles, evcsp = create_charging_plans(
-        demand_df, horizon_length=horizon_length, time_step=time_step,
-        nbr_vehicle=nVE, capacity_grid=pmax, n_sols=n_sols,
-        formulation="milp", solver_options=solver_options_2
+        demand_df,
+        horizon_length=station.planning_parameters.horizon_length, time_step=station.planning_parameters.time_step,
+        nbr_vehicle=nbr_vehicles, capacity_grid=pmax, n_sols=10,
+        formulation="milp", solver_options=solver_options
     )
 
     kpi_station, kpi_per_ev = compute_energetic_kpi(
         power_profiles=powerProfiles,
         power_grid=pmax,
         planning_input=demand_df,
-        time_step=time_step
+        time_step=station.planning_parameters.time_step
     )
 
     horizon_start = np.datetime64('today')
-    horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
+    horizon_datetime = create_time_horizon(
+        start=horizon_start, time_step=station.planning_parameters.time_step,
+        horizon_length=station.planning_parameters.horizon_length
+    )
 
     fig_power = generate_fig_station_power(
         x=horizon_datetime,
@@ -154,7 +170,7 @@ def upload_demand(raw_demand: str, filename) -> List[List[Dict]] | dbc.Alert:
             df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
 
         elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
+            # Assume that the user uploaded an Excel file
             df = pd.read_excel(io.BytesIO(decoded))
         else:
             return dbc.Alert("Invalid file extension", color="danger")
@@ -168,8 +184,7 @@ def upload_demand(raw_demand: str, filename) -> List[List[Dict]] | dbc.Alert:
 
 # %% DASHBOARD APP
 
-app.layout = station_layout
-
+app.layout = create_station_layout(charging_demand=charging_demand_displayed.to_dict("records"))
 
 # %% Run the app
 if __name__ == '__main__':
