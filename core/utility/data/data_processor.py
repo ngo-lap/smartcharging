@@ -147,6 +147,23 @@ def verify_planning_data(df_planning: pd.DataFrame) -> None:
     # Check value types
 
 
+def create_time_horizon(
+        start: np.datetime64 = np.datetime64('today'),
+        time_step: int | float = 900,
+        horizon_length: int = 96
+) -> np.ndarray:
+    """
+    Generate a time horizon.
+    :param start: start time of the horizon
+    :param time_step: time step in seconds
+    :param horizon_length: horizon length, i.e. length of the output
+    :return: time horizon in np.datetime64
+
+    """
+    horizon = start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+    return horizon
+
+
 if __name__ == '__main__':
     data_mobility = generate_demand_data(nbr_vehicles=5, horizon_length=24, time_step=900)
     data_planning = prepare_planning_data(data_mobility, time_step=900)

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import cvxpy as cp
 from core.planner.day_ahead_planner import create_charging_plans
-from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
+from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
 import plotly.express as px
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     solver_options_2 = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     horizon_start = np.datetime64('today')
-    horizon_datetime = horizon_start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+    horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
 
     # Data Preparation
     data_sessions = generate_demand_data(
