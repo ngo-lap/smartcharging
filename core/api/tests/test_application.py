@@ -8,7 +8,6 @@ import pytest
 from fastapi.testclient import TestClient
 from core.api.main import app
 from core.utility.data.data_processor import verify_planning_data
-from data.charging_demand import charging_demand_columns as required_columns
 
 client = TestClient(app)
 
@@ -44,7 +43,7 @@ def test_create_demand():
 
     response = client.get(
         "/cpo/predict-charging-demand/synthetic",
-        params={"nbr_vehicles": 2, "horizon_length": 96, "time_step": 900}
+        params={"nbr_vehicles": 2, "horizon_length": 96, "time_step": 600}
     )
     response_content = response.json()
     demand_df: pd.DataFrame = pd.DataFrame.from_records(response_content["demand"])
@@ -73,7 +72,7 @@ def test_create_charging_plans_lp(demand_sample):
         json={
             "planning_params": {
                 "creation_date": "", "nbr_vehicles": 2, "horizon_length": 96,
-                "time_step": 900, "pmax_infrastructure": p_max_infra
+                "time_step": 600, "pmax_infrastructure": p_max_infra
             },
             "demand": {"creation_date": "", "source": "synthetic", "demand": demand_sample}
         }
