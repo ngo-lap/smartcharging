@@ -53,17 +53,21 @@ In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`)
 
 ## Dashboard Application 
 
-With 40 vehicles and a infrastructure capacity of 100kW, the planner gives the following results
+With 40 vehicles and a infrastructure capacity of 100kW, the planner gives the following results for a horizon of 24 hours, with 15-minute time step. 
 
-#### Station KPIs 
-<img width="791" height="495" alt="example_kpi" src="https://github.com/user-attachments/assets/8aea4793-2e5b-4081-954e-0943e819967e" />
 
 #### Total Station Power (kW)
+This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
 <img width="1592" height="450" alt="example_station_power" src="https://github.com/user-attachments/assets/91c4b7db-11de-4c29-b702-d91d6bb398c6" />
 
-#### Individual Vehicle Charging Power (kW)
+#### Individual Vehicles Charging Powers (kW)
+Vehicles charging powers are visualized in form of heatmap, where the x axis is the time, y axis is the vehicle and the color represents the assigned charging power. 
 <img width="1592" height="450" alt="example_vehicle_power" src="https://github.com/user-attachments/assets/3f8eae57-65b3-4f3d-9273-ba2298270c0a" />
 
+#### Station KPIs 
+<img width="791" height="495" alt="example_kpi" src="https://github.com/user-attachments/assets/8aea4793-2e5b-4081-954e-0943e819967e" tag="station_kpi"/>
+
 ## First Use
+
 
 
