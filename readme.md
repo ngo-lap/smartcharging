@@ -101,7 +101,7 @@ This table can be synthetically generated using `generate_demand_data` function:
     
     # Generate demand data
     data_sessions = generate_demand_data(
-        nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step, horizon_start=horizon_start
+        nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step
     )
 ```
 
@@ -234,6 +234,7 @@ For the moment, there are only two endpoints, one for predicting the charging de
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
