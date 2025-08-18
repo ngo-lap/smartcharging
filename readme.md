@@ -47,14 +47,15 @@ In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`)
     ├───tests
 ```
 
-## Description of the Mathematical Problem
+## Planner example:
 
-## API 
+This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW, for a horizon of 24 hours, with 15-minute time step. 
+The EV charging needs are given in the following table: 
 
-## Dashboard Application 
+Code snippet:
+```
 
-With 40 vehicles and a infrastructure capacity of 100kW, the planner gives the following results for a horizon of 24 hours, with 15-minute time step. 
-
+```
 
 #### Total Station Power (kW)
 This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
@@ -67,7 +68,12 @@ Vehicles charging powers are visualized in form of heatmap, where the x axis is 
 #### Station KPIs 
 <img width="791" height="495" alt="example_kpi" src="https://github.com/user-attachments/assets/8aea4793-2e5b-4081-954e-0943e819967e" tag="station_kpi"/>
 
-## First Use
+
+## API 
+The api can be launched by running the `core\api\main.py` script. 
+
+## Dashboard Application 
+The api can be launched by running the `core\dashboard\main.py` script. 
 
 
 
