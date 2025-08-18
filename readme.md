@@ -41,7 +41,7 @@ The optimization problem is formulated using [CVXPY](https://www.cvxpy.org/). Th
 The API and dashboard application can be launched separately by running `core\api\main.py` and `core\dashboard\main.py`, respectively. 
  
 ## Project Structure 
-```
+```python
 ├───api            # API for calling the planner  
     ├───routers
     ├───schemas
@@ -62,8 +62,9 @@ The API and dashboard application can be launched separately by running `core\ap
 
 ## Planner example:
 
-This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW, 
-for a horizon of 24 hours, with 15-minute time step. 
+This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW. 
+The planning horizon has 15-minute time step and considers 24 hours window, i.e. 96 time steps.
+
 
 #### EV Demand Data 
 
@@ -89,7 +90,7 @@ The first step is to get the prediction for EV charging demand, given in the fol
     
 This table can be synthetically generated using `generate_demand_data` function:
 
-```
+```python
     from core.utility.data.data_processor import generate_demand_data
 
     # Parameters
@@ -123,24 +124,63 @@ The resulted table would then be ready for the planner.
 
 This table can be processed from the function `prepare_planning_data`:
 
-```
+```python
     # Processing demand data (for the planner)
     data_planning = prepare_planning_data(data_demand=data_sessions, time_step=time_step)
 ```
 
 #### Calling the Planner 
 
+```python
+    # Options for MILP/LP solver
+    solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False}
 
-#### Total Station Power (kW)
-This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
-<img width="1592" height="450" alt="example_station_power" src="https://github.com/user-attachments/assets/91c4b7db-11de-4c29-b702-d91d6bb398c6" />
+    # Calling the planner to create charging plans 
+    _, powerProfiles, _ = create_charging_plans(
+        data_planning, horizon_length=horizon_length, time_step=time_step,
+        nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=10,
+        formulation="lp", solver_options=solver_options
+    )
+```
 
-#### Individual Vehicles Charging Powers (kW)
-Vehicles charging powers are visualized in form of heatmap, where the x axis is the time, y axis is the vehicle and the color represents the assigned charging power. 
+The charging plans are given in the `powerProfiles`, which is a `numpy.array` of size `horizong_length * nVE`. 
+Each entry `(t, v)` of this array represents the planned charging power for vehicle `v` and time `t`.  
+The charging plan can be visualized in form of heatmap, where the x axis is the time, y axis is 
+the vehicle and the color represents the assigned charging power. 
+
+```python
+# Create time horizon for plotting 
+horizon_start = np.datetime64('today')
+horizon_datetime = horizon_start + np.timedelta64(time_step, 's') * np.linspace(0, horizon_length-1, num=horizon_length)
+
+# Heatmap of charging plans
+fig = go.Figure(
+        go.Heatmap(
+            z=powerProfiles.T,
+            y=[str(v) for v in range(nVE)],
+            x=horizon_datetime,
+            hovertemplate="Vehicle: %{y}<br>"
+                          "Time Step: %{x}<br>"
+                          "Power: %{z:.1f} (kW) <br>"
+                          "<extra></extra>",
+            colorscale='gnbu',
+            colorbar={"title": "Charging Power"}
+        )
+    )
+    fig.update_layout(
+        # title={"text": "Vehicle Charging Powers"},
+        yaxis={"title": {"text": "Vehicle"}},
+        xaxis={"title": {"text": "Time Step"}},
+    )
+```
+
 <img width="1592" height="450" alt="example_vehicle_power" src="https://github.com/user-attachments/assets/3f8eae57-65b3-4f3d-9273-ba2298270c0a" />
 
-#### Station KPIs 
-<img width="791" height="495" alt="example_kpi" src="https://github.com/user-attachments/assets/8aea4793-2e5b-4081-954e-0943e819967e" tag="station_kpi"/>
+
+
+The station's total charging power (kW) withdrawn from electricity grid (blue line in the following Figure) is kept within the infrastructure power capacity (dash red line). 
+<img width="1592" height="450" alt="example_station_power" src="https://github.com/user-attachments/assets/91c4b7db-11de-4c29-b702-d91d6bb398c6" />
+
 
 
 ## API 
@@ -148,6 +188,7 @@ The api can be launched by running the `core\api\main.py` script.
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
