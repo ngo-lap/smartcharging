@@ -5,19 +5,19 @@ import base64
 import io
 from typing import List, Dict
 import numpy as np
-from dash import Dash, html, dash_table, dcc, callback, Input, Output, State
+from dash import Dash, dcc, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
 from core.api.schemas.cpo import Station, PlanningParameters
-from core.dashboard.markups import generate_table, generate_fig_station_power, generate_fig_station_kpi, \
+from core.dashboard.markups import generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
 from core.dashboard.pages.layouts import create_station_layout
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
-from data.charging_demand import charging_demand_columns as required_columns
+from core.utility.data.charging_demand import charging_demand_columns as required_columns
 
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])

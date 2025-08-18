@@ -8,7 +8,7 @@ logger = setup_logger(__name__)
 
 
 # TODO: TOU
-# TODO: formalize interface
+
 
 def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
                required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],

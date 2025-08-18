@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 import copy
-from data.charging_demand import charging_demand_columns as required_columns
+from core.utility.data.charging_demand import charging_demand_columns as required_columns
 
 
 def generate_demand_data(

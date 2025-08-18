@@ -19,7 +19,6 @@ def compute_energetic_kpi(
     :return:
     """
 
-    # TODO: test
 
     # Per vehicle KPI
     energy_kWh = (time_step / 3600) * power_profiles.sum(axis=0)

@@ -1,6 +1,5 @@
-import time
 from datetime import datetime
-from typing import Dict, List, Literal
+from typing import Literal
 import pandas as pd
 from fastapi import HTTPException, APIRouter
 from core.api.config import format_time
