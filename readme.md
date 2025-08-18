@@ -2,7 +2,7 @@
 
 This project is a demonstration of Electric Vehicle (EV) Smart Charging concept. 
 The context is simple, a Charge Point Operator (CPO) managing many charging terminals determines when and at what power to give to each terminal, 
-depending on vehicles' needs (arrival, departure, nominal charging power and required energy).   
+depending on vehicles' needs (arrival, departure, nominal charging power and required energy) and infrastructure limit (transformer power capacity).    
 
 
 This project provides a day-ahead planning algorithm for a typical CPO, based on Linear Programming and Mixed Integer Linear Programming. 
@@ -53,5 +53,17 @@ In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`)
 
 ## Dashboard Application 
 
+With 40 vehicles and a infrastructure capacity of 100kW, the planner gives the following results
+
+#### Station KPIs 
+<img width="791" height="495" alt="example_kpi" src="https://github.com/user-attachments/assets/8aea4793-2e5b-4081-954e-0943e819967e" />
+
+#### Total Station Power (kW)
+<img width="1592" height="450" alt="example_station_power" src="https://github.com/user-attachments/assets/91c4b7db-11de-4c29-b702-d91d6bb398c6" />
+
+#### Individual Vehicle Charging Power (kW)
+<img width="1592" height="450" alt="example_vehicle_power" src="https://github.com/user-attachments/assets/3f8eae57-65b3-4f3d-9273-ba2298270c0a" />
+
 ## First Use
+
 
