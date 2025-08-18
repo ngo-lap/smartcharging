@@ -38,7 +38,7 @@ The optimization problem is formulated using [CVXPY](https://www.cvxpy.org/). Th
 
   `pip install -r requirements.txt`
 
-The API and dashboard application can be launched separately by running `core\api\main.py` and `core\dashboard\main.py`, respectively. 
+
  
 ## Project Structure 
 ```python
@@ -178,16 +178,63 @@ fig = go.Figure(
 
 
 
-The station's total charging power (kW) withdrawn from electricity grid (blue line in the following Figure) is kept within the infrastructure power capacity (dash red line). 
+The station's total charging power (kW) withdrawn from electricity grid (blue line in the following Figure) 
+is kept within the infrastructure power capacity (dash red line). 
 <img width="1592" height="450" alt="example_station_power" src="https://github.com/user-attachments/assets/91c4b7db-11de-4c29-b702-d91d6bb398c6" />
 
 
 
 ## API 
 The api can be launched by running the `core\api\main.py` script. 
+For the moment, there are only two endpoints, one for predicting the charging demand and one for calling the charging plans: 
+
+
+
+<details>
+ <summary><code>GET</code> <code><b>predict-charging-demand/</b></code> <code><b>{source}/</b></code> <code>(predicting charging demand)</code></summary>
+
+##### Parameters
+
+> | name      |  type     | data type               | description                                                           |
+> |-----------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | source    |  required | str                     | Source of prediction (can be `synthetic` or `from_file` )  |
+> | nbr_vehicles    |  required | int                     | Number of vehicles arriving during the horizon  |
+> | time_step    |  required | int                     | Horizon time step   |
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `text/plain;charset=UTF-8`        | `Charging demand created successfully`                               |
+> | `422`         | `application/json`                | `{"code":"422","message":"Validation Error"}`                       |
+
+</details>
+
+
+
+<details>
+ <summary><code>POST</code> <code><b>charging-plan/</b></code> <code><b>{algorithm}/</b></code> <code>(calling day-ahead planner)</code></summary>
+
+##### Parameters
+
+> | name      |  type     | data type               | description                                                           |
+> |-----------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | demand    |  required | object (JSON)           | Charging Demand  |
+
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `text/plain;charset=UTF-8`        | `Charging Plans created successfully`                               |
+> | `422`         | `application/json`                | `{"code":"422","message":"Validation Error"}`                       |
+
+</details>
+
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
