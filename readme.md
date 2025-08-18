@@ -6,7 +6,8 @@ depending on vehicles' needs (arrival, departure, nominal charging power and req
 
 
 This project provides a day-ahead planning algorithm for a typical CPO, based on Linear Programming and Mixed Integer Linear Programming. 
-In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`) are also developed. 
+In addition, an API and Dashboard application are built using [FastAPI](https://fastapi.tiangolo.com/) and [Plotly Dash](https://dash.plotly.com/).
+The optimization problem is formulated using [CVXPY](https://www.cvxpy.org/). The planner algorithm uses the solver [HiGHS](https://github.com/ERGO-Code/HiGHS) and [CLARABEL](https://github.com/oxfordcontrol/Clarabel.rs) for MILP and LP formulation, respectively.  
 
 
 <p align="center">
@@ -27,6 +28,18 @@ In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`)
 
 ## Requirement & Installation 
 
+
+
+- Step 1: Clone the repo
+
+  `git clone <repo-link>`
+
+- Step 2: install requirement
+
+  `pip install -r requirements.txt`
+
+The API and dashboard application can be launched separately by running `core\api\main.py` and `core\dashboard\main.py`, respectively. 
+ 
 ## Project Structure 
 ```
 ├───api            # API for calling the planner  
@@ -50,12 +63,43 @@ In addition, simple APIs (`FastAPI`) and a simple Dashboard application (`dash`)
 ## Planner example:
 
 This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW, for a horizon of 24 hours, with 15-minute time step. 
-The EV charging needs are given in the following table: 
+The first step is to get the prediction for EV charging demand, given in the following table: 
 
-Code snippet:
+|    |   vehicle |   powerNom |   energyRequired |   energyMax | arrivalTime         | departureTime       |   parkingDuration |
+|---:|----------:|-----------:|-----------------:|------------:|:--------------------|:--------------------|------------------:|
+|  0 |         0 |         22 |          26      |          52 | 2025-08-18 11:59:53 | 2025-08-18 16:46:38 |           4.77917 |
+|  1 |         1 |          7 |          17.6711 |          30 | 2025-08-18 08:18:18 | 2025-08-18 10:49:46 |           2.52444 |
+|  2 |         2 |         11 |          45.815  |          52 | 2025-08-18 10:26:38 | 2025-08-18 14:36:32 |           4.165   |
+|  3 |         3 |         11 |          27.9156 |          88 | 2025-08-18 14:47:47 | 2025-08-18 17:20:03 |           2.53778 |
+|  4 |         4 |          6 |          20.305  |          88 | 2025-08-18 08:10:04 | 2025-08-18 11:33:07 |           3.38417 |
+
+  where:
+
+  - `vehicle`: vehicle ID or index
+  - `powerNom`: nominal power (kW) of the vehicle 
+  - `energyRequired`: the charging energy (kWh) requested by the vehicle
+  - `energyMax`: the capacity (kWh) of the vehicle's battery
+  - `arrivalTime`: arrival time of the vehicle, assuming it is plugged in immediately
+  - `departureTime`: departure time of the vehicle
+  - `parkingDuration`: parking duration (hour) of the vehicle, i.e. `= departureTime - arrivalTime`
+    
+This table can be synthetically generated using `generate_demand_data` function:
+
+```
+    from core.utility.data.data_processor import generate_demand_data
+
+    # Parameters
+    nVE = 40
+    time_step = 900         # [Seconds] time step of the planning horizon
+    horizon_length = 96     # [Time Step] the horizon length
+    capacity = 100          # [kW] infrastructure capacity
+    
+    # Generate demand data
+    data_sessions = generate_demand_data(
+        nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step, horizon_start=horizon_start
+    )
 ```
 
-```
 
 #### Total Station Power (kW)
 This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
@@ -74,6 +118,7 @@ The api can be launched by running the `core\api\main.py` script.
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
