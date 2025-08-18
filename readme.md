@@ -62,7 +62,11 @@ The API and dashboard application can be launched separately by running `core\ap
 
 ## Planner example:
 
-This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW, for a horizon of 24 hours, with 15-minute time step. 
+This example concerns the charge planning for 40 vehicles, a infrastructure capacity of 100kW, 
+for a horizon of 24 hours, with 15-minute time step. 
+
+#### EV Demand Data 
+
 The first step is to get the prediction for EV charging demand, given in the following table: 
 
 |    |   vehicle |   powerNom |   energyRequired |   energyMax | arrivalTime         | departureTime       |   parkingDuration |
@@ -103,8 +107,29 @@ This table can be synthetically generated using `generate_demand_data` function:
 The `arrivalTime` and `departureTime` columns must be converted into the 
 unit of planning horizon (integer) indexes so that it could be given to the planner. 
 The planning horizon starts at 00:00 AM with a time step of 15 minutes. 
-The first vehicle with arrival and departure time at `2025-08-18 11:59:53` and `2025-08-18 16:46:38` would have its corresponding horizon indexes (rounded) of 47 and 67
-(47 * 15 and 67 * 15 minutes from `00:00:00`)
+The first vehicle with arrival and departure time at `2025-08-18 11:59:53` and 
+`2025-08-18 16:46:38` would have its corresponding horizon indexes (rounded) of 47 and 67
+(47 * 15 and 67 * 15 minutes from `00:00:00`). 
+The resulted table would then be ready for the planner. 
+
+|    |   vehicle |   powerNom |   energyRequired |   energyMax |   arrivalTime |   departureTime |
+|---:|----------:|-----------:|-----------------:|------------:|--------------:|----------------:|
+|  0 |         0 |         22 |          26      |          52 |            47 |              67 |
+|  1 |         1 |          7 |          17.6711 |          30 |            33 |              43 |
+|  2 |         2 |         11 |          45.815  |          52 |            41 |              58 |
+|  3 |         3 |         11 |          27.9156 |          88 |            59 |              69 |
+|  4 |         4 |          6 |          20.305  |          88 |            32 |              46 |
+
+
+This table can be processed from the function `prepare_planning_data`:
+
+```
+    # Processing demand data (for the planner)
+    data_planning = prepare_planning_data(data_demand=data_sessions, time_step=time_step)
+```
+
+#### Calling the Planner 
+
 
 #### Total Station Power (kW)
 This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
@@ -123,6 +148,7 @@ The api can be launched by running the `core\api\main.py` script.
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
