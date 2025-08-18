@@ -100,6 +100,11 @@ This table can be synthetically generated using `generate_demand_data` function:
     )
 ```
 
+The `arrivalTime` and `departureTime` columns must be converted into the 
+unit of planning horizon (integer) indexes so that it could be given to the planner. 
+The planning horizon starts at 00:00 AM with a time step of 15 minutes. 
+The first vehicle with arrival and departure time at `2025-08-18 11:59:53` and `2025-08-18 16:46:38` would have its corresponding horizon indexes (rounded) of 47 and 67
+(47 * 15 and 67 * 15 minutes from `00:00:00`)
 
 #### Total Station Power (kW)
 This Figure visualizes the total charging power (kW) withdrawn from electricity grid (blue line), along with the infrastructure power capacity (dash red line). 
@@ -118,6 +123,7 @@ The api can be launched by running the `core\api\main.py` script.
 
 ## Dashboard Application 
 The api can be launched by running the `core\dashboard\main.py` script. 
+
 
 
 
