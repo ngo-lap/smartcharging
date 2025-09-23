@@ -2,3 +2,5 @@
 /venv/
 /.experimental/
 .env
+__pycache__/
+/.vscode/
