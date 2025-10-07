@@ -1,0 +1,21 @@
+# filepath: docker-compose.yml
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "8050:8050"
+    depends_on:
+      - api
+    develop:
+      watch:
+      - action: rebuild
+        path: .
