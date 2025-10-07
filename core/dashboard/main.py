@@ -19,7 +19,6 @@ from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
 from core.utility.data.charging_demand import charging_demand_columns as required_columns
 
-# TODO: move schemas out of API module 
 
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
