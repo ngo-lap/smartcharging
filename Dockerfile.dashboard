@@ -4,7 +4,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY core/dashboard /app/core/dashboard
-COPY core/api /app/core/api
+COPY core/schemas /app/core/schemas
 COPY core/planner /app/core/planner
 COPY core/utility /app/core/utility
 EXPOSE 8050
