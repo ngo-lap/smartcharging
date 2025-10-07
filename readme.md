@@ -44,13 +44,13 @@ The optimization problem is formulated using [CVXPY](https://www.cvxpy.org/). Th
 ```python
 ├───api            # API for calling the planner  
     ├───routers
-    ├───schemas
     ├───tests
     │   ├───data
 ├───dashboard      # Simple dash page for EV Day-ahead Planning 
     ├───assets
     ├───pages
     ├───tests
+├───schemas        # Schemas, DTOs for this application 
 ├───examples       # Examples of running the planner
 ├───planner        # Algorithms for the EV Smart Charging Planner 
 ├───utility        # Other tools 
