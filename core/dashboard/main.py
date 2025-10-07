@@ -9,15 +9,17 @@ from dash import Dash, dcc, Input, Output, State
 import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
-from core.api.schemas.cpo import Station, PlanningParameters
 from core.dashboard.markups import generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
 from core.dashboard.pages.layouts import create_station_layout
+from core.api.schemas.cpo import Station, PlanningParameters
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
 from core.utility.data.charging_demand import charging_demand_columns as required_columns
+
+# TODO: move schemas out of API module 
 
 # App initialization
 app = Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
@@ -189,4 +191,6 @@ app.layout = create_station_layout(charging_demand=charging_demand_displayed.to_
 
 # %% Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    # When running in Docker, you need to bind to 0.0.0.0 instead of 127.0.0.1 
+    # so it’s accessible outside the container.
+    app.run(debug=True, host="0.0.0.0", port=8050)
