@@ -12,7 +12,7 @@ import dash_bootstrap_components as dbc
 from core.dashboard.markups import generate_fig_station_power, generate_fig_station_kpi, \
     generate_fig_heatmap_power
 from core.dashboard.pages.layouts import create_station_layout
-from core.api.schemas.cpo import Station, PlanningParameters
+from core.schemas.cpo import Station, PlanningParameters
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi

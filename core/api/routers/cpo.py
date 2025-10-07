@@ -5,7 +5,7 @@ from fastapi import HTTPException, APIRouter
 from core.api.config import format_time
 from core.planner.day_ahead_planner import create_charging_plans
 import cvxpy as cp
-from core.api.schemas.cpo import DemandData, ChargingPlanData, PlanningParameters
+from core.schemas.cpo import DemandData, ChargingPlanData, PlanningParameters
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data
 
 

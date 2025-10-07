@@ -1,8 +1,6 @@
 from pydantic import ValidationError
 import pytest
-
-from core.api.schemas.cpo import ChargingPlanData, DemandData, PlanningParameters, Station
-
+from core.schemas.cpo import ChargingPlanData, PlanningParameters, Station, DemandData
 
 def test_demand_data_defaults_and_required_fields():
     # Only required field is 'demand'

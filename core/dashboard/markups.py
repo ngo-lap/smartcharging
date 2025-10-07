@@ -4,7 +4,7 @@ from dash import Dash, html, dash_table, dcc
 from dash.dash_table.Format import Format, Scheme
 import pandas as pd
 import plotly.graph_objects as go
-from core.api.schemas.cpo import Station
+from core.schemas.cpo import Station
 
 
 def generate_table(data: List[Dict] | pd.DataFrame, id_tag: str) -> dash_table.DataTable:
