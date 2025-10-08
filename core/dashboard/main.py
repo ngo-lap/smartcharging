@@ -87,7 +87,7 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
         Input(component_id="slider-pgrid", component_property="value")
     ]
 )
-def run_planner(demand: List[Dict], pmax: List | np.array) -> (go.Figure, go.Figure, go.Figure, List[Dict]):
+def run_planner(demand: List[Dict], pmax: List | np.array) -> go.Figure | go.Figure | go.Figure | List[Dict]:
 
     demand_df = prepare_planning_data(
         data_demand=pd.DataFrame.from_records(demand),
