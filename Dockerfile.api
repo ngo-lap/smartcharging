@@ -1,11 +1,18 @@
 # filepath: Dockerfile.api
-FROM python:3.11
+# Multi-stage build for a FastAPI application. 
+# See here: https://coderivers.org/blog/docker-with-python-venv/
+
+# Build stage
+FROM python:3.11-slim AS build
 WORKDIR /app
+ENV PYTHONPATH=/app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY core/api /app/core/api
-COPY core/schemas /app/core/schemas
-COPY core/planner /app/core/planner
-COPY core/utility /app/core/utility
+RUN pip install -r requirements.txt
+COPY . /app
+
+# Run Stage 
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=build /app .
 EXPOSE 8000
 CMD ["uvicorn", "core.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
