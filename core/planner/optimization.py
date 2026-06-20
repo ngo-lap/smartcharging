@@ -133,9 +133,9 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     """
     LP version of EVCSP
 
-    :param nbr_vehicle:
-    :param arrival_idx:
-    :param departure_idx:
+    :param nbr_vehicle: number of vehicles / terminal considered in the horizon
+    :param arrival_idx: index of arrival time
+    :param departure_idx: index of departure time
     :param power_nom: nominal power of each vehicle [kW]
     :param capacity_nom: nominal capacity for each vehicle [kWh]
     :param required_energy: energy demand for each vehicle [kWh]
@@ -155,18 +155,19 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     logger.info(f"LP Formulation with solver {solver}")
 
     # Additional Parameters
-    deltaT = time_step / 3600
-    effCharging = 0.9
-    priceElectricity = 0.13  # €/kWh
-    penaltyUnsatisfied = 100  # [€ / kWh] Penalty for unsatisfied energy
+    # TODO: parameterize these
+    delta_t = time_step / 3600
+    efficiency_charging = 0.9   # Charging efficiency
+    price_energy_buy = 0.13  # €/kWh
+    penalty_unsatisfied = 100  # [€ / kWh] Penalty for unsatisfied energy
 
     # VARIABLE
     # --------------------------------
 
     # soe[t,v] is the state of energy vehicle v at time t
     soe: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True, name="SOE")
-    soe_under: cp.Variable = cp.Variable(shape=(nbr_vehicle, 1), nonneg=True, name="SOE Under")      # Undercharged SOE
-    soe_over: cp.Variable = cp.Variable(shape=(nbr_vehicle, 1), nonneg=True, name="SOE Over")        # Overcharged SOE
+    soe_under: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True, name="SOE Under")      # Undercharged SOE
+    soe_over: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True, name="SOE Over")        # Overcharged SOE
 
     # powerCharging[t,v] is the workload speed of vehicle v at time t
     power_charging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
@@ -193,7 +194,7 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
         ctrs_energy.append(
             soe[1:-1, v]
             ==
-            effCharging * power_charging[0:-2, v] * deltaT + soe[0:-2, v]
+            efficiency_charging * power_charging[0:-2, v] * delta_t + soe[0:-2, v]
         )
 
         # ctrs_energy.append(soe[-1, v] >= reductionRatio * required_energy[v])
@@ -217,8 +218,8 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     # OBJECTIVE
     # -------------------------------
     func_obj = cp.Minimize(
-        penaltyUnsatisfied * cp.sum(soe_under / capacity_nom)
-        + priceElectricity * deltaT * cp.sum(power_charging)
+        penalty_unsatisfied * cp.sum(soe_under / capacity_nom)
+        + price_energy_buy * delta_t * cp.sum(power_charging)
     )
 
     # Solve the problem
