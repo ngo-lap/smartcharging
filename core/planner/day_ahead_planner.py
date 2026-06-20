@@ -18,9 +18,9 @@ logger = setup_logger(__name__)
 
 def create_charging_plans(
         data_demand: pd.DataFrame, horizon_length: int, time_step: int,
-        nbr_vehicle: int, capacity_grid: float | List[float] | np.array, n_sols: int,
+        nbr_vehicle: int, capacity_grid: float | List[float] | np.ndarray, n_sols: int,
         formulation: str = "milp", solver_options: dict = None
-) -> (np.array, np.array, cp.Problem):
+) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
 
     """
         Return the charging plans of all vehicles
@@ -48,8 +48,8 @@ def create_charging_plans(
     departure = data_demand.loc[:, "departureTime"].tolist()
     power = data_demand.loc[:, "powerNom"].tolist()
     # duration = data_demand.loc[:, "chargingDuration"].tolist()
-    energyRequired = data_demand.loc[:, "energyRequired"].tolist()
-    energyMax = data_demand.loc[:, "energyMax"].tolist()
+    energy_required = data_demand.loc[:, "energyRequired"].tolist()
+    energy_max = data_demand.loc[:, "energyMax"].tolist()
 
     # assert all((np.array(departure) - np.array(arrival) - duration) >= 0), \
     #     "Charging duration must be shorter than parking time"
@@ -61,7 +61,7 @@ def create_charging_plans(
 
         activationProfiles, powerProfiles, evcsp = evcsp_milp(
             nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
-            required_energy=energyRequired, capacity_nom=energyMax, p_max_infra=capacity_grid,
+            required_energy=energy_required, capacity_nom=energy_max, p_max_infra=capacity_grid,
             horizon_length=horizon_length, time_step=time_step, solver_options=solver_options
         )
 
@@ -69,7 +69,7 @@ def create_charging_plans(
 
         activationProfiles, powerProfiles, evcsp = evcsp_lp(
             nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
-            required_energy=energyRequired, capacity_nom=energyMax, p_max_infra=capacity_grid,
+            required_energy=energy_required, capacity_nom=energy_max, p_max_infra=capacity_grid,
             horizon_length=horizon_length, time_step=time_step, solver_options=solver_options
         )
 

@@ -1,4 +1,5 @@
 import json
+import pprint
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -61,15 +62,18 @@ def simple_cpo_variable_capacity():
     """
 
     # Meta-parameters
-    nVE = 40
+    nVE = 50
     time_step = 900         # [Seconds]
     horizon_length = 96     # [Time Step]
     capacity = 200          # [kW] grid capacity
     n_sols = 250
-    capacity_grid = np.array([100] * horizon_length)
-    # capacity_grid[40:57] = 80
-    solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
-    # solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    capacity_grid = np.array([120] * horizon_length)
+    capacity_grid[40:57] = 100
+    capacity_grid[0:20] = 0
+    # capacity_grid[0:75] = 0
+
+    # solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     horizon_start = np.datetime64('today')
     horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
@@ -81,7 +85,7 @@ def simple_cpo_variable_capacity():
     data_planning = prepare_planning_data(data_demand=data_sessions, time_step=time_step)
 
     # PLANNING
-    _, powerProfiles, evcsp = create_charging_plans(
+    _, power_profiles, evcsp = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
         formulation="lp", solver_options=solver_options
@@ -89,17 +93,17 @@ def simple_cpo_variable_capacity():
 
     # KPI
     kpi_station, kpi_per_ev = compute_energetic_kpi(
-        power_profiles=powerProfiles,
+        power_profiles=power_profiles,
         power_grid=capacity,
         planning_input=data_planning,
         time_step=time_step
     )
 
-    print(evcsp.solver_stats)
-    print(kpi_station)
+    pprint.pprint(evcsp.solver_stats)
+    pprint.pprint(kpi_station)
 
     # Visualization
-    plt.plot(horizon_datetime, powerProfiles.sum(axis=1))
+    plt.plot(horizon_datetime, power_profiles.sum(axis=1))
     plt.plot(horizon_datetime, capacity_grid, '--')
     plt.xlabel("Time Idx")
     plt.ylabel("Total Charging Power (kW)")
