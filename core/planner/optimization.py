@@ -10,10 +10,11 @@ logger = setup_logger(__name__)
 # TODO: TOU
 
 
-def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
-               required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],
-               horizon_length: int, time_step: int = 900, solver_options: dict = None) -> \
-        tuple[np.ndarray, np.ndarray, cp.Problem]:
+def evcsp_milp(
+        nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
+        required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],
+        horizon_length: int, time_step: int = 900, solver_options: dict = None, prices = None
+) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
     """
     MILP version of EVCSP
 
@@ -27,15 +28,19 @@ def evcsp_milp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int
     :param horizon_length: horizon length [time steps]
     :param time_step: [seconds]
     :param solver_options:
+    :param prices:
     :return:
     """
+
+    if prices is None:
+        prices = {"price_energy_buy": 0.13, "price_energy_sell": 0.13, "penalty_unsatisfied": 100}
 
     assert required_energy <= capacity_nom, "Required Energy must not exceed nom capacity"
 
     delta_t = time_step / 3600
     efficiency_charging = 0.9
-    price_energy_buy = 0.13  # €/kWh
-    penalty_unsatisfied = 100  # [€ / kWh] Penalty for unsatisfied energy
+    price_energy_buy = prices["price_energy_buy"]           # [currency/kWh]
+    penalty_unsatisfied = prices["penalty_unsatisfied"]     # [currency/kWh] Penalty for unsatisfied energy
 
     # VARIABLE
     # --------------------------------
@@ -148,7 +153,6 @@ def evcsp_lp(
     :return:
     """
 
-    # Solver setup
     if prices is None:
         prices = {"price_energy_buy": 0.13, "price_energy_sell": 0.13, "penalty_unsatisfied": 100}
 

@@ -76,7 +76,9 @@ def simple_cpo_variable_capacity():
     solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     horizon_start = np.datetime64('today')
-    horizon_datetime = create_time_horizon(start=horizon_start, time_step=time_step, horizon_length=horizon_length)
+    horizon_datetime = create_time_horizon(
+        start=horizon_start, time_step=time_step, horizon_length=horizon_length
+    )
 
     # Data Preparation
     data_sessions = generate_demand_data(
@@ -88,7 +90,8 @@ def simple_cpo_variable_capacity():
     _, power_profiles, evcsp = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
-        formulation="lp", solver_options=solver_options
+        formulation="lp", solver_options=solver_options,
+        prices_data={"price_energy_buy": 0.2, "penalty_unsatisfied": 100}
     )
 
     # KPI
