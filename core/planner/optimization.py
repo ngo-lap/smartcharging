@@ -132,12 +132,10 @@ def evcsp_milp(
     return activation_profile, power_profile, prob
 
 
-def evcsp_lp(
-        nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
-        required_energy: List[int], capacity_nom: List[float], p_max_infra: float | List[float],
-        horizon_length: int, time_step: int = 900, solver_options: dict = None, prices=None,
-        efficiency_charging: float = 0.9
-) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
+def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
+             required_energy: List[int], capacity_nom: List[float], soe_init: List[float], p_max_infra: float | List[float],
+             horizon_length: int, time_step: int = 900, solver_options: dict = None, prices=None,
+             efficiency_charging: float = 0.9) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
     """
     LP version of EVCSP
 
@@ -146,6 +144,7 @@ def evcsp_lp(
     :param departure_idx: index of departure time
     :param power_nom: nominal power of each vehicle [kW]
     :param capacity_nom: nominal capacity for each vehicle [kWh]
+    :param soe_init: Initial SOE of vehicles at arrival [kWh]
     :param required_energy: energy demand for each vehicle [kWh]
     :param p_max_infra: max power profile for the station [kW]
     :param horizon_length: horizon length [time steps]
@@ -190,16 +189,14 @@ def evcsp_lp(
     ctrs_power_bounds = []
     ctrs_energy = []
 
-    # Arrival & Departure
     for v in range(nbr_vehicle):
+
+        # Arrival & Departure
         ctrs_arrival.append(power_charging[0:arrival_idx[v], v] == 0)
         ctrs_departure.append(power_charging[departure_idx[v]::, v] == 0)
 
-    # Power Bounds
-    for v in range(nbr_vehicle):
+        # Power Bounds
         ctrs_power_bounds.append(power_charging[:, v] <= power_nom[v])
-
-    for v in range(nbr_vehicle):
 
         # Charging Energy [t+1] = Charging Power [t] + Charging Energy[t]
         ctrs_energy.append(
@@ -208,15 +205,15 @@ def evcsp_lp(
             efficiency_charging * power_charging[0:-2, v] * delta_t + soe[0:-2, v]
         )
 
-        # ctrs_energy.append(soe[-1, v] >= reductionRatio * required_energy[v])
-        ctrs_energy.append(soe[0, :] == 0)
+        # Initial SOE
+        ctrs_energy.append(soe[0:arrival_idx[v], v] == soe_init[v])
 
         # Bounds for SOE
         ctrs_energy.append(soe[:, v] <= capacity_nom[v])
 
         # Unsatisfied SOE
         ctrs_energy.append(
-            soe_under[v] - soe_over[v] == required_energy[v] - soe[departure_idx[v], v]
+            soe_over[v] - soe_under[v] == (soe[departure_idx[v], v] - soe[arrival_idx[v], v]) - required_energy[v]
         )
 
     # Bounds f or SOE under and over
@@ -247,11 +244,9 @@ def evcsp_lp(
     start_time = time.time()
     prob.solve(verbose=True, warm_start=False, solver=solver_options["solver"])
 
-    if prob.status == cp.OPTIMAL:
-        logger.info("Optimal Solution found")
     if prob.status == cp.OPTIMAL or prob.status == cp.OPTIMAL_INACCURATE:
         logger.info(f"Solution found with status {prob.status}")
-        logger.info(f"Measured Solving Time: {time.time() - start_time} seconds")
+        logger.info(f"Measured Solving Time: {round(time.time() - start_time, 1)} seconds")
         activation_profile = power_charging.value > 0
         power_profile = power_charging.value
 

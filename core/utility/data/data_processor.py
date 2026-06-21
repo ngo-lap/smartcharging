@@ -20,31 +20,34 @@ def generate_demand_data(
     :return:
     """
 
-    # Data
-    # --------------------------------
+    # Data pool for random selection
     powerNomSet: List[int] = [6, 7, 11, 22]  # kW
     capacitykWh: List[int] = [30, 52, 88, 100]  # kWh
-    deltaT: int = int(3600 / time_step)  # 3600 / timestep
-    powerNom: np.array = np.random.choice(powerNomSet, nbr_vehicles)    # Nominal Charging Power [kW]
-    energyMax: np.array = np.random.choice(capacitykWh, nbr_vehicles)
-    energyRequired: np.array = np.random.randint(5, 80, nbr_vehicles)   # Total charging energy [kWh]
+
+    # Data random generation
+    powerNom: np.ndarray = np.random.choice(powerNomSet, nbr_vehicles)      # Nominal Charging Power [kW]
+    energyMax: np.ndarray = np.random.choice(capacitykWh, nbr_vehicles)     # Nominal battery capacity [kWh]
+    arrivalSOC: np.ndarray = np.random.rand(nbr_vehicles)                   # Initial SOC (scale of 1, not 100)
+    arrivalSOE: np.ndarray = np.multiply(arrivalSOC, energyMax)
+    energyRequired: np.ndarray = energyMax - arrivalSOE                     # Required charging energy [kWh]
 
     # Time Data [Seconds from 00:00]
-    arrivalTime: np.array = np.random.randint(5 * 3600, 16 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
-    parkingDuration: np.array = np.random.randint(1 * 3600, 5 * 3600, nbr_vehicles)  # Parking duration [Seconds]
-    departureTime: np.array = np.clip(a=arrivalTime + parkingDuration, a_min=0, a_max=23 * 3600)
+    arrivalTime: np.ndarray = np.random.randint(5 * 3600, 16 * 3600, nbr_vehicles)  # Arrival Time [Seconds]
+    parkingDuration: np.ndarray = np.random.randint(1 * 3600, 5 * 3600, nbr_vehicles)  # Parking duration [Seconds]
+    departureTime: np.ndarray = np.clip(a=arrivalTime + parkingDuration, a_min=0, a_max=23 * 3600)
 
-    durations: np.array = 3600 * energyRequired / powerNom  # Charging Duration [seconds]
-    durations = np.minimum(parkingDuration, durations)  # Limit charging duration to parking time
+    durations: np.ndarray = 3600 * energyRequired / powerNom    # Charging Duration [seconds]
+    durations = np.minimum(parkingDuration, durations)          # Limit charging duration to parking time
+
 
     data_generated: pd.DataFrame = pd.DataFrame(
         {
-            'powerNom': powerNom, 'energyRequired': (durations / 3600) * powerNom,
+            'powerNom': powerNom,
             'energyMax': energyMax,
             'arrivalTime': horizon_start + np.timedelta64(1, 's') * arrivalTime,
             'departureTime': horizon_start + np.timedelta64(1, 's') * departureTime,
-            'parkingDuration': parkingDuration / 3600,
-            'chargingDuration': durations / 3600
+            'parkingDuration': parkingDuration / 3600, 'chargingDuration': durations / 3600,
+            'arrivalSOC': arrivalSOC, 'arrivalSOE': arrivalSOE,'energyRequired': (durations / 3600) * powerNom
         }, index=range(nbr_vehicles)
     )
     data_generated = data_generated.reset_index(names=["vehicle"])
@@ -139,10 +142,8 @@ def verify_planning_data(df_planning: pd.DataFrame) -> None:
     # Required Column Names
     # _required_field_names = ["powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"
     # Check column names
-    assert (
-        set(required_columns).issubset(df_planning.columns),
+    assert set(required_columns).issubset(df_planning.columns), \
         f"Missing columns names {set(required_columns).difference(df_planning.columns)}"
-    )
 
     # Check value types
 
@@ -167,5 +168,5 @@ def create_time_horizon(
 if __name__ == '__main__':
     data_mobility = generate_demand_data(nbr_vehicles=5, horizon_length=24, time_step=900)
     data_planning = prepare_planning_data(data_mobility, time_step=900)
-    print(data_mobility)
-    print(data_planning)
+    print(data_mobility.round(2))
+    print(data_planning.round(2))
