@@ -19,7 +19,8 @@ logger = setup_logger(__name__)
 def create_charging_plans(
         data_demand: pd.DataFrame, horizon_length: int, time_step: int,
         nbr_vehicle: int, capacity_grid: float | List[float] | np.ndarray, n_sols: int,
-        formulation: str = "milp", solver_options: dict = None, prices_data: dict = None,
+        formulation: str = "milp", solver_options: dict = None,
+        prices_data: dict = None, vehicle_data: dict = None,
 ) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
 
     """
@@ -33,7 +34,8 @@ def create_charging_plans(
     :param nbr_vehicle: number of vehicles
     :param capacity_grid: grid capacity [kW]
     :param n_sols:
-    :param prices_data:
+    :param prices_data: prices (buy/sell prices of energy/power) for the optimization problem
+    :param vehicle_data: vehicle data (charging efficiency, discharging efficiency)
     :return:
         profile: charging profile of individual vehicles [kW]
         totalPowerProfile: total charging profiles of all vehicles [kW]
@@ -51,30 +53,40 @@ def create_charging_plans(
     # duration = data_demand.loc[:, "chargingDuration"].tolist()
     energy_required = data_demand.loc[:, "energyRequired"].tolist()
     energy_max = data_demand.loc[:, "energyMax"].tolist()
+    soe_arrival = data_demand.loc[:, "arrivalSOE"].tolist()
 
     # assert all((np.array(departure) - np.array(arrival) - duration) >= 0), \
     #     "Charging duration must be shorter than parking time"
+
+    if vehicle_data is None:
+        vehicle_data = {"efficiency_charging": 0.9}
 
     # Calling the EVCSP planner: either CP (constraint programming), MILP or Heuristics.
     # profile, totalPowerProfile = EVCSP(data_mobility, horizon_length, 'CP')
 
     if formulation == "milp":
-
         activationProfiles, powerProfiles, evcsp = evcsp_milp(
-            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
-            required_energy=energy_required, capacity_nom=energy_max, p_max_infra=capacity_grid,
-            horizon_length=horizon_length, time_step=time_step,
-            solver_options=solver_options, prices=prices_data
+            nbr_vehicle=nbr_vehicle, arrival_idx=arrival,
+            departure_idx=departure, power_nom=power,
+            required_energy=energy_required, capacity_nom=energy_max,
+            p_max_infra=capacity_grid, horizon_length=horizon_length,
+            time_step=time_step, solver_options=solver_options,
+            efficiency_charging=vehicle_data["efficiency_charging"],
+            prices=prices_data
         )
+
 
     elif formulation == "lp":
 
         activationProfiles, powerProfiles, evcsp = evcsp_lp(
-            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
-            required_energy=energy_required, capacity_nom=energy_max, p_max_infra=capacity_grid,
-            horizon_length=horizon_length, time_step=time_step,
-            solver_options=solver_options, prices=prices_data
-        )
+                nbr_vehicle=nbr_vehicle, arrival_idx=arrival,
+                departure_idx=departure, power_nom=power,
+                required_energy=energy_required, capacity_nom=energy_max,
+                soe_init=soe_arrival, p_max_infra=capacity_grid,
+                horizon_length=horizon_length, time_step=time_step,
+                solver_options=solver_options, prices=prices_data,
+                efficiency_charging=vehicle_data["efficiency_charging"]
+            )
 
     return activationProfiles, powerProfiles, evcsp
 
