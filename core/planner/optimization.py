@@ -179,7 +179,7 @@ def evcsp_lp(
     soe_under: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True, name="SOE Under")      # Undercharged SOE
     soe_over: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True, name="SOE Over")        # Overcharged SOE
 
-    # powerCharging[t,v] is the workload speed of vehicle v at time t
+    # powerCharging[t,v] is the charging power  of vehicle v at time t
     power_charging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
 
     # CONSTRAINTS
@@ -199,8 +199,9 @@ def evcsp_lp(
     for v in range(nbr_vehicle):
         ctrs_power_bounds.append(power_charging[:, v] <= power_nom[v])
 
-    # Charging Energy [t+1] = Charging Power [t] + Charging Energy[t]
     for v in range(nbr_vehicle):
+
+        # Charging Energy [t+1] = Charging Power [t] + Charging Energy[t]
         ctrs_energy.append(
             soe[1:-1, v]
             ==
@@ -208,7 +209,9 @@ def evcsp_lp(
         )
 
         # ctrs_energy.append(soe[-1, v] >= reductionRatio * required_energy[v])
-        ctrs_energy.append(soe[0, :] == 0)  # TODO: SOE init
+        ctrs_energy.append(soe[0, :] == 0)
+
+        # Bounds for SOE
         ctrs_energy.append(soe[:, v] <= capacity_nom[v])
 
         # Unsatisfied SOE
@@ -216,21 +219,27 @@ def evcsp_lp(
             soe_under[v] - soe_over[v] == required_energy[v] - soe[departure_idx[v], v]
         )
 
+    # Bounds f or SOE under and over
     ctrs_energy.append(required_energy >= soe_under)
     ctrs_energy.append(soe_over <= required_energy)
 
-    # Power Limit
+    # Power Limit.
+    # TODO: soft constraint this
+    # TODO: make it a Parameter object
     ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra)
 
     # Append all constraints
     ctrs_all = ctrs_arrival + ctrs_departure + ctrs_power_bounds + ctrs_energy + ctrs_power
 
+    # -------------------------------
     # OBJECTIVE
     # -------------------------------
-    func_obj = cp.Minimize(
-        penalty_unsatisfied * cp.sum(soe_under / capacity_nom)
-        + price_energy_buy * delta_t * cp.sum(power_charging)
-    )
+    # func_obj_service = cp.sum( cp.multiply(penalty_unsatisfied / np.array(capacity_nom), soe_under) )
+    # func_obj_energy_cost = delta_t * cp.sum( cp.multiply(price_energy_buy, power_charging) )
+
+    func_obj_service = penalty_unsatisfied * cp.sum(soe_under / capacity_nom)
+    func_obj_energy_cost = price_energy_buy * delta_t * cp.sum(power_charging)
+    func_obj = cp.Minimize( func_obj_service + func_obj_energy_cost)
 
     # Solve the problem
     prob = cp.Problem(objective=func_obj, constraints=ctrs_all)
@@ -240,15 +249,16 @@ def evcsp_lp(
 
     if prob.status == cp.OPTIMAL:
         logger.info("Optimal Solution found")
+    if prob.status == cp.OPTIMAL or prob.status == cp.OPTIMAL_INACCURATE:
+        logger.info(f"Solution found with status {prob.status}")
         logger.info(f"Measured Solving Time: {time.time() - start_time} seconds")
-
         activation_profile = power_charging.value > 0
         power_profile = power_charging.value
-        s_sol = [0]
+
     else:
         logger.exception('Problem not solved properly !')
-        # print(f"Schedule: {schedule.value}")
-        # print(f"Energy: {energyCharging.value}")
-        # print(f"Power: {powerCharging.value}")
+        activation_profile = np.zeros(shape=(horizon_length, nbr_vehicle), dtype=int)
+        power_profile = np.zeros(shape=(horizon_length, nbr_vehicle), dtype=float)
+
 
     return activation_profile, power_profile, prob
