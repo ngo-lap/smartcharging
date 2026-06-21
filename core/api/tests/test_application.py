@@ -22,7 +22,8 @@ def demand_sample() -> List[Dict]:
             "energyRequired": 16.59,
             "energyMax": 52,
             "arrivalTime": 31,
-            "departureTime": 41
+            "departureTime": 41,
+            "arrivalSOE": 0.0
         },
         {
             "vehicle": 1,
@@ -30,7 +31,8 @@ def demand_sample() -> List[Dict]:
             "energyRequired": 8.72,
             "energyMax": 100,
             "arrivalTime": 38,
-            "departureTime": 43
+            "departureTime": 43,
+            "arrivalSOE": 0.0
         }
     ]
 

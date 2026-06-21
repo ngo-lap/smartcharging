@@ -8,22 +8,26 @@ from core.dashboard.main import run_planner
 @pytest.fixture
 def demand_raw() -> List[Dict]:
 
+    import numpy as np
+    today_str = np.datetime64('today').astype(str)
     charging_demand_raw = [
         {
             "vehicle": 0,
             "powerNom": 7,
             "energyRequired": 16.00,
             "energyMax": 52,
-            "arrivalTime": "2025-08-16T05:15:44",
-            "departureTime": "2025-08-16T09:04:16",
+            "arrivalTime": f"{today_str}T05:15:44",
+            "departureTime": f"{today_str}T09:04:16",
+            "arrivalSOE": 0.0,
         },
         {
-            "vehicle": 0,
+            "vehicle": 1,
             "powerNom": 7,
             "energyRequired": 16.00,
             "energyMax": 52,
-            "arrivalTime": "2025-08-16T05:15:44",
-            "departureTime": "2025-08-16T09:04:16",
+            "arrivalTime": f"{today_str}T05:15:44",
+            "departureTime": f"{today_str}T09:04:16",
+            "arrivalSOE": 0.0,
         }
     ]
 
@@ -32,11 +36,11 @@ def demand_raw() -> List[Dict]:
 
 def test_run_planner(demand_raw):
 
-    fig_power, fig_kpi, fig_vehicle_power, plans_dict = run_planner(demand=demand_raw, pmax=100)
+    fig_power, fig_kpi, fig_vehicle_heatmap, fig_vehicle_stackplot, plans_dict = run_planner(demand=demand_raw, pmax=100)
     plans_df = pd.DataFrame.from_records(plans_dict)
     assert len(plans_df.columns) == len(demand_raw)
     assert len(plans_df) == 96
 
 
-def test_predict_charging_demand(demand_raw, charging_plans: List[Dict]):
+def test_predict_charging_demand(demand_raw):
     pass

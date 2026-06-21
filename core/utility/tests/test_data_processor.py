@@ -13,7 +13,7 @@ def df_sessions() -> pd.DataFrame:
 def test_indexing_arrival_departure_time(df_sessions):
 
     converted_time = indexing_arrival_departure_time(
-        data=df_sessions[["session_start", "session_end"]], time_step=900, horizon_start=np.datetime64("today")
+        data=df_sessions[["session_start", "session_end"]], time_step=900, horizon_start=None
     )
 
     df_sessions[["arrivalTime", "departureTime"]] = converted_time
