@@ -128,7 +128,7 @@ def generate_fig_station_kpi(station: Station, kpi_station: Dict[str, float]) ->
     return fig_kpi
 
 
-def generate_fig_heatmap_power(horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.array) -> go.Figure:
+def generate_fig_heatmap_power(horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.ndarray) -> go.Figure:
 
     nbr_vehicles = power_profiles_vehicles.shape[1]
     nbr_timestep = power_profiles_vehicles.shape[0]
@@ -152,3 +152,44 @@ def generate_fig_heatmap_power(horizon_datetime: np.ndarray[np.datetime64], powe
     )
 
     return fig
+
+
+def generate_fig_stackplot_power(
+        horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.ndarray, capacity_grid: np.ndarray = None
+) -> go.Figure:
+
+    nbr_vehicles = power_profiles_vehicles.shape[1]
+    nbr_timestep = power_profiles_vehicles.shape[0]
+
+    fig = go.Figure()
+    for v in range(nbr_vehicles):
+        fig.add_trace(
+            go.Scatter(
+                x=horizon_datetime,
+                y=power_profiles_vehicles[:, v],
+                name=f"Vehicle {v}",
+                mode='lines',
+                line=dict(width=0.5),
+                stackgroup='one',
+                hovertemplate="Vehicle: " + str(v) + "<br>"
+                              "Time Step: %{x}<br>"
+                              "Power: %{y:.1f} (kW)<br>"
+                              "<extra></extra>"
+            )
+        )
+
+
+    fig.add_trace(go.Scatter(x=horizon_datetime, y=power_profiles_vehicles.sum(axis=1), name="Total Power"))
+
+    if capacity_grid is not None:
+        fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Transformer Capacity"))
+
+    fig.update_layout(
+        yaxis={"title": {"text": "Power (kW)"}},
+        xaxis={"title": {"text": "Time Step"}},
+    )
+
+
+
+    return fig
+

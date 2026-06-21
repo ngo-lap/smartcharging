@@ -1,15 +1,20 @@
 import json
 import pprint
 
+import cvxpy_debug
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 import cvxpy as cp
+
+from core.dashboard.markups import generate_fig_heatmap_power, generate_fig_stackplot_power
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi
 import plotly.graph_objects as go
 import plotly.express as px
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 
 def simple_cpo_fixed_capacity():
@@ -31,7 +36,8 @@ def simple_cpo_fixed_capacity():
     _, powerProfiles, evcsp = create_charging_plans(
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity, n_sols=n_sols,
-        formulation="milp", solver_options=solver_options_2
+        formulation="milp", solver_options=solver_options_2,
+        vehicle_data = {"efficiency_charging": 0.85}
     )
 
     # KPI
@@ -54,7 +60,7 @@ def simple_cpo_fixed_capacity():
     plt.show()
 
 
-def simple_cpo_variable_capacity():
+def simple_cpo_variable_capacity() -> cp.Problem:
 
     """
         Variable infrastructure limit
@@ -67,13 +73,13 @@ def simple_cpo_variable_capacity():
     horizon_length = 96     # [Time Step]
     capacity = 200          # [kW] grid capacity
     n_sols = 250
-    capacity_grid = np.array([120] * horizon_length)
-    capacity_grid[40:57] = 100
-    capacity_grid[0:20] = 0
+    capacity_grid = np.array([80] * horizon_length)
+    capacity_grid[40:57] = 60
+    # capacity_grid[0:20] = 0
     # capacity_grid[0:75] = 0
 
-    # solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
-    solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    # solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
 
     horizon_start = np.datetime64('today')
     horizon_datetime = create_time_horizon(
@@ -91,7 +97,8 @@ def simple_cpo_variable_capacity():
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
         formulation="lp", solver_options=solver_options,
-        prices_data={"price_energy_buy": 0.2, "penalty_unsatisfied": 100}
+        prices_data={"price_energy_buy": 0.2, "penalty_unsatisfied": 100},
+        vehicle_data={"efficiency_charging": 0.85}
     )
 
     # KPI
@@ -106,23 +113,20 @@ def simple_cpo_variable_capacity():
     pprint.pprint(kpi_station)
 
     # Visualization
-    plt.plot(horizon_datetime, power_profiles.sum(axis=1))
-    plt.plot(horizon_datetime, capacity_grid, '--')
-    plt.xlabel("Time Idx")
-    plt.ylabel("Total Charging Power (kW)")
-    plt.show()
+    # plt.plot(horizon_datetime, power_profiles.sum(axis=1))
+    # plt.plot(horizon_datetime, capacity_grid, '--')
+    # plt.xlabel("Time Idx")
+    # plt.ylabel("Total Charging Power (kW)")
+    # plt.show()
 
-    # fig = go.Figure()
-    # fig.add_trace(go.Scatter(x=horizon_datetime, y=powerProfiles.sum(axis=1), name="Total Charging Power (kW)"))
-    # fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Infras Capacity (kW)"))
-    # # fig = px.area(x=horizon_datetime, y=powerProfiles.sum(axis=1))
-    #
-    # fig.update_layout(
-    #     title={"text": "Station Power Profiles"},
-    #     xaxis={"title": {"text": "Time Step"}},
-    #     yaxis={"title": {"text": "Power (kW)"}}
-    # )
-    # fig.show()
+    fig_vehicles = generate_fig_heatmap_power(
+        horizon_datetime=horizon_datetime, power_profiles_vehicles=power_profiles
+    )
+    fig_vehicles.show()
+
+    fig_stack = generate_fig_stackplot_power(
+        horizon_datetime=horizon_datetime, power_profiles_vehicles=power_profiles, capacity_grid=capacity_grid)
+    fig_stack.show()
 
     # Temp - export sample demand to json files
     # selected_columns = ["vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"]
@@ -130,7 +134,9 @@ def simple_cpo_variable_capacity():
     # demand_json_str = json.dumps(demand_json, indent=4)
     # print(demand_json_str)
 
+    return evcsp
 
 if __name__ == '__main__':
 
-    simple_cpo_variable_capacity()
+    prob = simple_cpo_variable_capacity()
+    cvxpy_debug.debug(prob)
