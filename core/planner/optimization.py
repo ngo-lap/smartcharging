@@ -13,7 +13,8 @@ logger = setup_logger(__name__)
 def evcsp_milp(
         nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
         required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],
-        horizon_length: int, time_step: int = 900, solver_options: dict = None, prices = None
+        horizon_length: int, time_step: int = 900, solver_options: dict = None, prices = None,
+        efficiency_charging: float = 0.9
 ) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
     """
     MILP version of EVCSP
@@ -29,6 +30,7 @@ def evcsp_milp(
     :param time_step: [seconds]
     :param solver_options:
     :param prices:
+    :param efficiency_charging: charging efficiency (on the scale of 1, not 100%)
     :return:
     """
 
@@ -38,7 +40,6 @@ def evcsp_milp(
     assert required_energy <= capacity_nom, "Required Energy must not exceed nom capacity"
 
     delta_t = time_step / 3600
-    efficiency_charging = 0.9
     price_energy_buy = prices["price_energy_buy"]           # [currency/kWh]
     penalty_unsatisfied = prices["penalty_unsatisfied"]     # [currency/kWh] Penalty for unsatisfied energy
 
@@ -133,8 +134,9 @@ def evcsp_milp(
 
 def evcsp_lp(
         nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
-        required_energy: List[int], capacity_nom: List[int], p_max_infra: float | List[float],
+        required_energy: List[int], capacity_nom: List[float], p_max_infra: float | List[float],
         horizon_length: int, time_step: int = 900, solver_options: dict = None, prices=None,
+        efficiency_charging: float = 0.9
 ) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
     """
     LP version of EVCSP
@@ -150,6 +152,7 @@ def evcsp_lp(
     :param time_step: [seconds]
     :param solver_options:
     :param prices: contain prices information for the optimization problem
+    :param efficiency_charging: charging efficiency (on the scale of 1, not 100%)
     :return:
     """
 
@@ -164,9 +167,7 @@ def evcsp_lp(
     logger.info(f"LP Formulation with solver {solver}")
 
     # Additional Parameters
-    # TODO: parameterize these
     delta_t = time_step / 3600
-    efficiency_charging = 0.9   # Charging efficiency
     price_energy_buy = prices["price_energy_buy"]           # [currency/kWh]
     penalty_unsatisfied = prices["penalty_unsatisfied"]     # [currency/kWh] Penalty for unsatisfied energy
 
