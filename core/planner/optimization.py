@@ -33,6 +33,9 @@ def evcsp_milp(
     :param prices: contain prices information for the optimization problem
     :param efficiency_charging: charging efficiency (on the scale of 1, not 100%)
     :return:
+        power_profile: power charging profile
+        activation_profile: charging indicators profile (1 for charging, 0 for not charging)
+        prob: CVXPY Problem
     """
 
     if prices is None:
@@ -146,10 +149,12 @@ def evcsp_milp(
     return activation_profile, power_profile, prob
 
 
-def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
-             required_energy: List[int], capacity_nom: List[float], soe_init: List[float], p_max_infra: float | List[float],
-             horizon_length: int, time_step: int = 900, solver_options: dict = None, prices=None,
-             efficiency_charging: float = 0.9) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
+def evcsp_lp(
+        nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int], power_nom: List[int],
+        required_energy: List[int], capacity_nom: List[float], soe_init: List[float], p_max_infra: float | List[float],
+        horizon_length: int, time_step: int = 900, solver_options: dict = None, prices=None,
+        efficiency_charging: float = 0.9
+    ) -> tuple[np.ndarray, np.ndarray, cp.Problem]:
     """
     LP version of EVCSP
 
@@ -188,7 +193,7 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
 
     # PARAMETERS object
     # --------------------------------
-    if isinstance(p_max_infra, list):
+    if hasattr(p_max_infra, "__len__"):
         param_peak_power = cp.Parameter(shape=(len(p_max_infra), ), name="Peak Power Capacity", value=p_max_infra)
     else:
         param_peak_power = cp.Parameter(name="Peak Power Capacity", value=p_max_infra)
