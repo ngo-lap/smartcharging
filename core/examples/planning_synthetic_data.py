@@ -10,7 +10,7 @@ import cvxpy as cp
 from core.dashboard.markups import generate_fig_heatmap_power, generate_fig_stackplot_power
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
-from core.utility.kpi.eval_performance import compute_energetic_kpi
+from core.utility.kpi.eval_performance import compute_energetic_kpi, compute_other_optim_kpi
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
@@ -109,8 +109,14 @@ def simple_cpo_variable_capacity() -> cp.Problem:
         time_step=time_step
     )
 
+    kpi_soc = compute_other_optim_kpi(data_planning=data_planning, horizon_length=horizon_length, evcsp=evcsp)
+
     pprint.pprint(evcsp.solver_stats)
-    pprint.pprint(kpi_station)
+    pprint.pprint(pd.DataFrame(data=kpi_station, index=[0]))
+    # pprint.pprint(kpi_per_ev)
+
+    pprint.pprint(data_planning)
+    pprint.pprint(kpi_soc)
 
     # Visualization
     # plt.plot(horizon_datetime, power_profiles.sum(axis=1))
