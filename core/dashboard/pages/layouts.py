@@ -53,7 +53,8 @@ def create_station_layout(charging_demand: List[Dict]) -> dbc.Container:
                     dcc.Tabs(
                         [
                             dcc.Tab(dcc.Graph(figure={}, id="fig-station-power"), label="Station Powers"),
-                            dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-powers"), label="Vehicles Powers")
+                            dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-heatmap"), label="Vehicles Heatmap"),
+                            dcc.Tab(dcc.Graph(figure={}, id="fig-vehicles-stackplot"), label="Vehicles Stackplot")
                         ]
                     )
                 ]

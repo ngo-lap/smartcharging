@@ -10,7 +10,7 @@ import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
 from core.dashboard.markups import generate_fig_station_power, generate_fig_station_kpi, \
-    generate_fig_heatmap_power
+    generate_fig_heatmap_power, generate_fig_stackplot_power
 from core.dashboard.pages.layouts import create_station_layout
 from core.schemas.cpo import Station, PlanningParameters
 from core.planner.day_ahead_planner import create_charging_plans
@@ -79,7 +79,8 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
     [
         Output(component_id="fig-station-power", component_property="figure"),
         Output(component_id="fig-station-kpi", component_property="figure"),
-        Output(component_id="fig-vehicles-powers", component_property="figure"),
+        Output(component_id="fig-vehicles-heatmap", component_property="figure"),
+        Output(component_id="fig-vehicles-stackplot", component_property="figure"),
         Output(component_id="table-charging-plans", component_property="derived_virtual_data")
     ],
     [
@@ -87,7 +88,7 @@ def predict_charging_demand(n_clicks: int = 1) -> List[List[Dict]]:
         Input(component_id="slider-pgrid", component_property="value")
     ]
 )
-def run_planner(demand: List[Dict], pmax: List | np.array) -> go.Figure | go.Figure | go.Figure | List[Dict]:
+def run_planner(demand: List[Dict], pmax: List | np.array) -> tuple[go.Figure, go.Figure, go.Figure, go.Figure, List[Dict]]:
 
     demand_df = prepare_planning_data(
         data_demand=pd.DataFrame.from_records(demand),
@@ -97,12 +98,11 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> go.Figure | go.Fig
 
     nbr_vehicles = len(demand_df)
 
-    _, powerProfiles, evcsp = create_charging_plans(
-        demand_df,
-        horizon_length=station.planning_parameters.horizon_length, time_step=station.planning_parameters.time_step,
-        nbr_vehicle=nbr_vehicles, capacity_grid=pmax, n_sols=10,
-        formulation="lp", solver_options=solver_options
-    )
+    _, powerProfiles, evcsp = create_charging_plans(demand_df,
+                                                    horizon_length=station.planning_parameters.horizon_length,
+                                                    time_step=station.planning_parameters.time_step,
+                                                    nbr_vehicle=nbr_vehicles, capacity_grid=pmax, n_sols=10,
+                                                    formulation="lp", solver_options=solver_options)
 
     kpi_station, kpi_per_ev = compute_energetic_kpi(
         power_profiles=powerProfiles,
@@ -124,9 +124,10 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> go.Figure | go.Fig
     )
 
     fig_kpi = generate_fig_station_kpi(station=station, kpi_station=kpi_station)
-    fig_vehicle_power = generate_fig_heatmap_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
+    fig_vehicle_heatmap = generate_fig_heatmap_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
+    fig_vehicle_stackplot = generate_fig_stackplot_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
 
-    return fig_power, fig_kpi, fig_vehicle_power, pd.DataFrame(powerProfiles).to_dict("records")
+    return fig_power, fig_kpi, fig_vehicle_heatmap, fig_vehicle_stackplot, pd.DataFrame(powerProfiles).to_dict("records")
 
 
 # %% Callbacks - Download
