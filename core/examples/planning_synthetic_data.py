@@ -97,7 +97,7 @@ def simple_cpo_variable_capacity() -> cp.Problem:
         data_planning, horizon_length=horizon_length, time_step=time_step,
         nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
         formulation="lp", solver_options=solver_options,
-        prices_data={"price_energy_buy": 0.2, "penalty_unsatisfied": 100},
+        prices_data={"price_energy_buy": 3000, "penalty_unsatisfied": 600000},
         vehicle_data={"efficiency_charging": 0.85}
     )
 
