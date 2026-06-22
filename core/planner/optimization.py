@@ -183,6 +183,8 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     delta_t = time_step / 3600
     price_energy_buy = prices["price_energy_buy"]           # [currency/kWh]
     penalty_unsatisfied = prices["penalty_unsatisfied"]     # [currency/kWh] Penalty for unsatisfied energy
+    price_power_violation = 1e6
+    peak_power_soft_constraint = True
 
     # VARIABLE
     # --------------------------------
@@ -193,7 +195,11 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     soe_over: cp.Variable = cp.Variable(shape=nbr_vehicle, nonneg=True, name="SOE Over")        # Overcharged SOE
 
     # powerCharging[t,v] is the charging power  of vehicle v at time t
-    power_charging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True)
+    power_charging: cp.Variable = cp.Variable(shape=(horizon_length, nbr_vehicle), nonneg=True, name="Charging Power")
+
+    if peak_power_soft_constraint:
+        power_peak_over: cp.Variable = cp.Variable(shape=1, nonneg=True, name="Peak Power Over")
+        # power_peak_under: cp.Variable = cp.Variable(shape=1, nonneg=True, name="Peak Power Under")
 
     # CONSTRAINTS
     # --------------------------------
@@ -235,9 +241,13 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     ctrs_energy.append(soe_over <= required_energy)
 
     # Power Limit.
-    # TODO: soft constraint this
     # TODO: make it a Parameter object
-    ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra)
+    if peak_power_soft_constraint:
+        ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra + power_peak_over)
+    else:
+        ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra)
+
+    # ctrs_power.append(power_peak_over - power_peak_under == p_max_infra)
 
     # Append all constraints
     ctrs_all = ctrs_arrival + ctrs_departure + ctrs_power_bounds + ctrs_energy + ctrs_power
@@ -250,10 +260,14 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
 
     func_obj_service = penalty_unsatisfied * cp.sum(soe_under / capacity_nom)
     func_obj_energy_cost = price_energy_buy * delta_t * cp.sum(power_charging)
-    func_obj = cp.Minimize( func_obj_service + func_obj_energy_cost)
+    func_obj = func_obj_service + func_obj_energy_cost
+
+    if peak_power_soft_constraint:
+        func_obj_power_peak_violation = price_power_violation  * power_peak_over
+        func_obj += func_obj_power_peak_violation
 
     # Solve the problem
-    prob = cp.Problem(objective=func_obj, constraints=ctrs_all)
+    prob = cp.Problem(objective=cp.Minimize(func_obj), constraints=ctrs_all)
 
     start_time = time.time()
     prob.solve(verbose=True, warm_start=False, solver=solver_options["solver"])
