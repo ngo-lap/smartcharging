@@ -154,8 +154,9 @@ def generate_fig_heatmap_power(horizon_datetime: np.ndarray[np.datetime64], powe
     return fig
 
 
-def generate_fig_stackplot_power(
-        horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.ndarray, capacity_grid: np.ndarray = None
+def generate_fig_stackedplot_power(
+        horizon_datetime: np.ndarray[np.datetime64], power_profiles_vehicles: np.ndarray,
+        capacity_grid: np.ndarray | float = None
 ) -> go.Figure:
 
     nbr_vehicles = power_profiles_vehicles.shape[1]
@@ -169,7 +170,7 @@ def generate_fig_stackplot_power(
                 y=power_profiles_vehicles[:, v],
                 name=f"Vehicle {v}",
                 mode='lines',
-                line=dict(width=0.5),
+                line=dict(width=0.25),
                 stackgroup='one',
                 hovertemplate="Vehicle: " + str(v) + "<br>"
                               "Time Step: %{x}<br>"
@@ -181,15 +182,15 @@ def generate_fig_stackplot_power(
 
     fig.add_trace(go.Scatter(x=horizon_datetime, y=power_profiles_vehicles.sum(axis=1), name="Total Power"))
 
-    if capacity_grid is not None:
-        fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Transformer Capacity"))
+    if hasattr(capacity_grid, "__len__"):
+        fig.add_trace(go.Scatter(x=horizon_datetime, y=capacity_grid, name="Subscribed Peak Power"))
+    else:
+        fig.add_hline(y=capacity_grid, line_dash="dash", line_color="red", name="Subscribed Peak Power")
 
     fig.update_layout(
         yaxis={"title": {"text": "Power (kW)"}},
-        xaxis={"title": {"text": "Time Step"}},
+        xaxis={"title": {"text": "Time"}},
     )
-
-
 
     return fig
 

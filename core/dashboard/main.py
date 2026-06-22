@@ -10,7 +10,7 @@ import pandas as pd
 import cvxpy as cp
 import dash_bootstrap_components as dbc
 from core.dashboard.markups import generate_fig_station_power, generate_fig_station_kpi, \
-    generate_fig_heatmap_power, generate_fig_stackplot_power
+    generate_fig_heatmap_power, generate_fig_stackedplot_power
 from core.dashboard.pages.layouts import create_station_layout
 from core.schemas.cpo import Station, PlanningParameters
 from core.planner.day_ahead_planner import create_charging_plans
@@ -104,6 +104,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> tuple[go.Figure, g
                                                     nbr_vehicle=nbr_vehicles, capacity_grid=pmax, n_sols=10,
                                                     formulation="lp", solver_options=solver_options)
 
+    # KPI COMPUTATION
     kpi_station, kpi_per_ev = compute_energetic_kpi(
         power_profiles=powerProfiles,
         power_grid=pmax,
@@ -111,6 +112,7 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> tuple[go.Figure, g
         time_step=station.planning_parameters.time_step
     )
 
+    # VISUALIZATION
     horizon_start = np.datetime64('today')
     horizon_datetime = create_time_horizon(
         start=horizon_start, time_step=station.planning_parameters.time_step,
@@ -124,8 +126,12 @@ def run_planner(demand: List[Dict], pmax: List | np.array) -> tuple[go.Figure, g
     )
 
     fig_kpi = generate_fig_station_kpi(station=station, kpi_station=kpi_station)
-    fig_vehicle_heatmap = generate_fig_heatmap_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
-    fig_vehicle_stackplot = generate_fig_stackplot_power(horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles)
+    fig_vehicle_heatmap = generate_fig_heatmap_power(
+        horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles
+    )
+    fig_vehicle_stackplot = generate_fig_stackedplot_power(
+        horizon_datetime=horizon_datetime, power_profiles_vehicles=powerProfiles, capacity_grid=pmax
+    )
 
     return fig_power, fig_kpi, fig_vehicle_heatmap, fig_vehicle_stackplot, pd.DataFrame(powerProfiles).to_dict("records")
 

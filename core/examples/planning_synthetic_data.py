@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import cvxpy as cp
 
-from core.dashboard.markups import generate_fig_heatmap_power, generate_fig_stackplot_power
+from core.dashboard.markups import generate_fig_heatmap_power, generate_fig_stackedplot_power
 from core.planner.day_ahead_planner import create_charging_plans
 from core.utility.data.data_processor import generate_demand_data, prepare_planning_data, create_time_horizon
 from core.utility.kpi.eval_performance import compute_energetic_kpi, compute_other_optim_kpi
@@ -130,7 +130,7 @@ def simple_cpo_variable_capacity() -> cp.Problem:
     )
     fig_vehicles.show()
 
-    fig_stack = generate_fig_stackplot_power(
+    fig_stack = generate_fig_stackedplot_power(
         horizon_datetime=horizon_datetime, power_profiles_vehicles=power_profiles, capacity_grid=capacity_grid)
     fig_stack.show()
 
@@ -206,7 +206,7 @@ def simple_cpo_update_peak_as_parameter():
 
 
 
-    fig_stack = generate_fig_stackplot_power(
+    fig_stack = generate_fig_stackedplot_power(
         horizon_datetime=horizon_datetime, power_profiles_vehicles=power_profiles, capacity_grid=capacity_grid)
     fig_stack.show()
 
@@ -215,7 +215,7 @@ def simple_cpo_update_peak_as_parameter():
     evcsp.param_dict["Peak Power Capacity"].value = horizon_length * [new_peak_infra]
     evcsp.solve()
 
-    fig_stack = generate_fig_stackplot_power(
+    fig_stack = generate_fig_stackedplot_power(
         horizon_datetime=horizon_datetime,
         power_profiles_vehicles=evcsp.var_dict["Charging Power"].value,
         capacity_grid=evcsp.param_dict["Peak Power Capacity"].value
