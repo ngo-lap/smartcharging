@@ -142,7 +142,89 @@ def simple_cpo_variable_capacity() -> cp.Problem:
 
     return evcsp
 
-if __name__ == '__main__':
+def simple_cpo_update_peak_as_parameter():
 
-    prob = simple_cpo_variable_capacity()
+    # prob = simple_cpo_variable_capacity()
+    # Meta-parameters
+    nVE = 60
+    time_step = 900  # [Seconds]
+    horizon_length = 96  # [Time Step]
+    capacity = 200  # [kW] grid capacity
+    n_sols = 250
+    capacity_grid = np.array([40] * horizon_length)
+    # capacity_grid[40:57] = 60
+    # capacity_grid[0:20] = 0
+    # capacity_grid[0:75] = 0
+
+    solver_options = {"solver": cp.CLARABEL, "time_limit": 60.0, "verbose": False, "warm_start": False}
+    # solver_options = {"solver": cp.SCIPY, "time_limit": 60.0, "verbose": False, "warm_start": False}
+
+    horizon_start = np.datetime64('today')
+    horizon_datetime = create_time_horizon(
+        start=horizon_start, time_step=time_step, horizon_length=horizon_length
+    )
+
+    # Data Preparation
+    data_sessions = generate_demand_data(
+        nbr_vehicles=nVE, horizon_length=horizon_length, time_step=time_step, horizon_start=horizon_start
+    )
+    data_planning = prepare_planning_data(data_demand=data_sessions, time_step=time_step)
+
+    # PLANNING
+    _, power_profiles, evcsp = create_charging_plans(
+        data_planning, horizon_length=horizon_length, time_step=time_step,
+        nbr_vehicle=nVE, capacity_grid=capacity_grid, n_sols=n_sols,
+        formulation="lp", solver_options=solver_options,
+        prices_data={"price_energy_buy": 3000, "penalty_unsatisfied": 600000},
+        vehicle_data={"efficiency_charging": 0.85}
+    )
+
+    # KPI
+    kpi_station, kpi_per_ev = compute_energetic_kpi(
+        power_profiles=power_profiles,
+        power_grid=capacity,
+        planning_input=data_planning,
+        time_step=time_step
+    )
+
+    # kpi_soc = compute_other_optim_kpi(data_planning=data_planning, horizon_length=horizon_length, evcsp=evcsp)
+
+    pprint.pprint(evcsp.solver_stats)
+    # pprint.pprint(pd.DataFrame(data=kpi_station, index=[0]))
+    pprint.pprint(kpi_station)
+    # pprint.pprint(data_planning)
+
+    # print(evcsp.var_dict["Peak Power Over"].value)
+    # pprint.pprint(kpi_soc)
+
+    # Visualization
+    # plt.plot(horizon_datetime, power_profiles.sum(axis=1))
+    # plt.plot(horizon_datetime, capacity_grid, '--')
+    # plt.xlabel("Time Idx")
+    # plt.ylabel("Total Charging Power (kW)")
+    # plt.show()
+
+
+
+    fig_stack = generate_fig_stackplot_power(
+        horizon_datetime=horizon_datetime, power_profiles_vehicles=power_profiles, capacity_grid=capacity_grid)
+    fig_stack.show()
+
+    # UPDATE PEAK POWER AND RESOLVE
+    new_peak_infra = 30
+    evcsp.param_dict["Peak Power Capacity"].value = horizon_length * [new_peak_infra]
+    evcsp.solve()
+
+    fig_stack = generate_fig_stackplot_power(
+        horizon_datetime=horizon_datetime,
+        power_profiles_vehicles=evcsp.var_dict["Charging Power"].value,
+        capacity_grid=evcsp.param_dict["Peak Power Capacity"].value
+    )
+
+    fig_stack.show()
+    return evcsp
+
+
+if __name__ == '__main__':
+    prob = simple_cpo_update_peak_as_parameter()
     cvxpy_debug.debug(prob)

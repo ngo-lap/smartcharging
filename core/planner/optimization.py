@@ -186,6 +186,10 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     price_power_violation = 1e6
     peak_power_soft_constraint = True
 
+    # PARAMETERS object
+    # --------------------------------
+    param_peak_power = cp.Parameter(shape=(len(p_max_infra), ), name="Peak Power Capacity", value=p_max_infra)
+
     # VARIABLE
     # --------------------------------
 
@@ -243,11 +247,9 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
     # Power Limit.
     # TODO: make it a Parameter object
     if peak_power_soft_constraint:
-        ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra + power_peak_over)
+        ctrs_power.append(cp.sum(power_charging, axis=1) <= param_peak_power + power_peak_over)
     else:
-        ctrs_power.append(cp.sum(power_charging, axis=1) <= p_max_infra)
-
-    # ctrs_power.append(power_peak_over - power_peak_under == p_max_infra)
+        ctrs_power.append(cp.sum(power_charging, axis=1) <= param_peak_power)
 
     # Append all constraints
     ctrs_all = ctrs_arrival + ctrs_departure + ctrs_power_bounds + ctrs_energy + ctrs_power
