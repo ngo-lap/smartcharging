@@ -2,5 +2,5 @@
 
 # For charging demand data
 charging_demand_columns = [
-    "vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime"
+    "vehicle", "powerNom", "energyRequired", "energyMax", "arrivalTime", "departureTime", "arrivalSOE"
 ]
