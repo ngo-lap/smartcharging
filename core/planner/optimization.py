@@ -188,7 +188,10 @@ def evcsp_lp(nbr_vehicle: int, arrival_idx: List[int], departure_idx: List[int],
 
     # PARAMETERS object
     # --------------------------------
-    param_peak_power = cp.Parameter(shape=(len(p_max_infra), ), name="Peak Power Capacity", value=p_max_infra)
+    if isinstance(p_max_infra, list):
+        param_peak_power = cp.Parameter(shape=(len(p_max_infra), ), name="Peak Power Capacity", value=p_max_infra)
+    else:
+        param_peak_power = cp.Parameter(name="Peak Power Capacity", value=p_max_infra)
 
     # VARIABLE
     # --------------------------------
