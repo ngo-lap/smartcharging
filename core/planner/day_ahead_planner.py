@@ -65,30 +65,24 @@ def create_charging_plans(
     # profile, totalPowerProfile = EVCSP(data_mobility, horizon_length, 'CP')
 
     if formulation == "milp":
-        activationProfiles, powerProfiles, evcsp = evcsp_milp(
-            nbr_vehicle=nbr_vehicle, arrival_idx=arrival,
-            departure_idx=departure, power_nom=power,
-            required_energy=energy_required, capacity_nom=energy_max,
-            p_max_infra=capacity_grid, horizon_length=horizon_length,
-            time_step=time_step, solver_options=solver_options,
-            efficiency_charging=vehicle_data["efficiency_charging"],
-            prices=prices_data
+        activation_profiles, power_profiles, evcsp = evcsp_milp(
+            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
+            required_energy=energy_required, capacity_nom=energy_max, soe_init=soe_arrival, p_max_infra=capacity_grid,
+            horizon_length=horizon_length, time_step=time_step, solver_options=solver_options,
+            efficiency_charging=vehicle_data["efficiency_charging"], prices=prices_data
         )
 
 
     elif formulation == "lp":
 
-        activationProfiles, powerProfiles, evcsp = evcsp_lp(
-                nbr_vehicle=nbr_vehicle, arrival_idx=arrival,
-                departure_idx=departure, power_nom=power,
-                required_energy=energy_required, capacity_nom=energy_max,
-                soe_init=soe_arrival, p_max_infra=capacity_grid,
-                horizon_length=horizon_length, time_step=time_step,
-                solver_options=solver_options, prices=prices_data,
-                efficiency_charging=vehicle_data["efficiency_charging"]
+        activation_profiles, power_profiles, evcsp = evcsp_lp(
+            nbr_vehicle=nbr_vehicle, arrival_idx=arrival, departure_idx=departure, power_nom=power,
+            required_energy=energy_required, capacity_nom=energy_max, soe_init=soe_arrival, p_max_infra=capacity_grid,
+            horizon_length=horizon_length, time_step=time_step, solver_options=solver_options,
+            prices=prices_data, efficiency_charging=vehicle_data["efficiency_charging"]
             )
 
-    return activationProfiles, powerProfiles, evcsp
+    return activation_profiles, power_profiles, evcsp
 
 
 if __name__ == '__main__':
